@@ -1,6 +1,7 @@
 package tableio
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/katasec/utils/errx"
@@ -22,6 +23,11 @@ func TestCreateTable(t *testing.T) {
 		Message: "Hi there !",
 	})
 
+	// Read Data
+	data := helloTable.All()
+	for _, item := range data {
+		fmt.Println(item.Message)
+	}
 	// Delete table
 	helloTable.DeleteTableIfExists()
 

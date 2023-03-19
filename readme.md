@@ -37,6 +37,18 @@ helloTable.Insert(Hello{
 ```
 You data is now saved in the DB !
 
+
+## Read the data 
+
+Call the `All()` method to retrieve all the data:
+
+```go
+data := helloTable.All()
+for _, item := range data {
+    fmt.Println(item.Message)
+}
+```
+
 ## Delete Table
 The following deletes the table:
 
