@@ -12,7 +12,7 @@ type Hello struct {
 
 ## Create a table using the struct's definition
 
-The TableIO constructor `NewTableIO` creates the table in your database and returns a handle to it:
+The TableIO constructor `NewTableIO` creates the table in your database and returns a handle to it. Pass in your struct's type as a type parameter into the method as per below:
 
 ```go
 helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
