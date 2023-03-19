@@ -21,9 +21,9 @@ helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 ## Insert data
 To insert data, call the insert method passing in your struct
 ```go
-	helloTable.Insert(Hello{
-		Message: "Hi there !",
-	})
+helloTable.Insert(Hello{
+    Message: "Hi there !",
+})
 ```
 You data is now saved in the DB !
 
@@ -31,7 +31,7 @@ You data is now saved in the DB !
 The following deletes the table:
 
 ```go
-	helloTable.DeleteTableIfExists()
+helloTable.DeleteTableIfExists()
 ```
 
 ## Close DB connections
