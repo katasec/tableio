@@ -12,12 +12,20 @@ type Hello struct {
 }
 ```
 
-## Create a table using the struct's definition
+## Connect to your DB
 
-The TableIO constructor `NewTableIO` creates the table in your database and returns a handle to it. Pass in your struct's type as a type parameter into the method as per below:
+The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Pass in your database driver name and connection string:
 
 ```go
 helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
+```
+
+## Create the table
+
+Call the `CreateTableIfNotExists` method to create a table for your struct:
+
+```go
+helloTable.CreateTableIfNotExists()
 ```
 
 ## Insert data
