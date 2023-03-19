@@ -4,6 +4,8 @@ TableIO helps with persisting structs into your datbase. Currently only sqlite i
 
 ## Define a struct
 
+Create a struct to represent the data you want to persist:
+
 ```go
 type Hello struct {
 	Message string `db:"message"`
