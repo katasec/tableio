@@ -63,7 +63,7 @@ helloTable.DeleteTableIfExists()
 
 Close the DB connection
 
-```
+```go
 // Close DB connection
 helloTable.Close()
 ```
