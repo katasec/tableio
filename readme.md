@@ -39,6 +39,6 @@ helloTable.DeleteTableIfExists()
 Close the DB connection
 
 ```
-	// Close DB connection
-	helloTable.Close()
+// Close DB connection
+helloTable.Close()
 ```
