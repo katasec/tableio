@@ -1,6 +1,6 @@
 # Overview 
 
-TableIO helps with persisting structs to sqlite. For e.g.
+TableIO helps with persisting structs into your datbase. Currently only sqlite is supported.
 
 ## Define a struct
 
