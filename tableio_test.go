@@ -19,9 +19,9 @@ func TestCreateTable(t *testing.T) {
 	helloTable.CreateTableIfNotExists()
 
 	// Insert data in to table
-	helloTable.Insert(Hello{
-		Message: "Hi there !",
-	})
+	helloTable.Insert(Hello{Message: "Hi One !"})
+	helloTable.Insert(Hello{Message: "Hi Two !"})
+	helloTable.Insert(Hello{Message: "Hi Three !"})
 
 	// Read Data
 	data := helloTable.All()

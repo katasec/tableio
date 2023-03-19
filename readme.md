@@ -34,9 +34,9 @@ helloTable.CreateTableIfNotExists()
 ## Insert data
 To insert data, call the insert method passing in your struct
 ```go
-helloTable.Insert(Hello{
-    Message: "Hi there !",
-})
+helloTable.Insert(Hello{Message: "Hi One !"})
+helloTable.Insert(Hello{Message: "Hi Two !"})
+helloTable.Insert(Hello{Message: "Hi Three !"})
 ```
 You data is now saved in the DB !
 
