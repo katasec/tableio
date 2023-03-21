@@ -7,11 +7,12 @@ import (
 	"github.com/katasec/utils/errx"
 )
 
-type Hello struct {
-	Message string `db:"message"`
-}
-
 func TestCreateTable(t *testing.T) {
+
+	// Create a test struct
+	type Hello struct {
+		Message string `db:"message"`
+	}
 
 	// Create New Table from struct definition
 	helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
@@ -33,4 +34,8 @@ func TestCreateTable(t *testing.T) {
 
 	// Close DB connection
 	helloTable.Close()
+}
+
+func TestReflectStuff(t *testing.T) {
+	fmt.Println("hello")
 }

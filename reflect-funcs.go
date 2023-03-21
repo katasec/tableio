@@ -23,17 +23,14 @@ func GetTableName[T any]() string {
 	}
 
 	// Add an S
-	tableName += "s"
-
-	// Convert to snake case
-	return tableName
+	return tableName + "s"
 }
 
 func GetDbColumnNames[T any]() string {
 
 	var sb strings.Builder
 
-	// Instantiate Struct of type T to use for replection
+	// Instantiate Struct of type T to use for reflection
 	var myStruct T
 	myType := reflect.TypeOf(myStruct)
 
@@ -71,7 +68,7 @@ func getDbColumnName(f reflect.StructField) string {
 	return colName
 }
 
-// GetStructValues Gets  struct values
+// GetStructValues Gets struct values
 func GetStructValues[T any](data T) string {
 
 	var sb strings.Builder
@@ -83,9 +80,9 @@ func GetStructValues[T any](data T) string {
 	numFields := dataValue.NumField()
 	for i := 0; i < numFields; i++ {
 		// Get next field and value
-		myField := dataValue.Field(i)
-		myValue := getValue(myField)
+		myValue := getValue(dataValue.Field(i))
 
+		// Comma separated
 		sb.WriteString("'" + myValue + "',")
 	}
 
