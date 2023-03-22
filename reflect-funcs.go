@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/katasec/tableio/reflectx"
 	"github.com/katasec/utils/errx"
 )
 
@@ -128,6 +129,27 @@ func GenSqlForStructFields[T any]() string {
 		sb.WriteString(genSqlByType(currField) + suffix + "\n")
 	}
 	return sb.String()
+}
+
+func GenSqlForFields(fields []reflectx.FieldInfo) string {
+	var sb strings.Builder
+	var sql string
+	for _, field := range fields {
+		switch field.FieldType {
+		case "string":
+			sql = fmt.Sprintf("\t%s VARCHAR(255) NULL \n", field.FieldName)
+			sb.WriteString(sql)
+		case "int32":
+			sql = fmt.Sprintf("\t%s INTEGER NULL \n", field.FieldName)
+			sb.WriteString(sql)
+		default:
+			sql = fmt.Sprintf("\t%s TEXT NULL \n", field.FieldName)
+			sb.WriteString(sql)
+		}
+	}
+	//fieldName := f.Name
+	return sb.String()
+
 }
 
 func genSqlByType(f reflect.StructField) string {

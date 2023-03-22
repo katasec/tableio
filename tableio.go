@@ -4,14 +4,16 @@ import (
 	"strings"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/katasec/tableio/reflectx"
 	"github.com/katasec/utils/errx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type TableIO[T any] struct {
-	DB         *sqlx.DB
-	tableName  string
-	fieldNames string
+	DB              *sqlx.DB
+	tableName       string
+	dbSelectListAll string
+	fields          []reflectx.FieldInfo
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
@@ -20,19 +22,37 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 		return nil, err
 	}
 
+	selectFields := reflectx.GetDbStructFields[T]()
+	selectList := strings.Join(selectFields, ", ")
+
+	//allSelectList :=
 	tableio := &TableIO[T]{
-		DB:         db,
-		fieldNames: GetDbColumnNames[T](),
-		tableName:  GetTableName[T](),
+		DB:              db,
+		dbSelectListAll: selectList, //GetDbColumnNames[T](),
+		tableName:       GetTableName[T](),
+		fields:          reflectx.GetStructFieldsX[T](),
 	}
 
 	return tableio, nil
 }
 
+func (me *TableIO[T]) SelectList() string {
+	var sb strings.Builder
+
+	for i, field := range me.fields {
+		sb.WriteString(field.FieldName)
+		if i < len(me.fields) {
+			sb.WriteString(",")
+		}
+	}
+
+	return sb.String()
+}
+
 func (me *TableIO[T]) All() []T {
 	var data []T
 
-	sqlCmd := "select " + me.fieldNames + " from " + me.tableName
+	sqlCmd := "select " + me.dbSelectListAll + " from " + me.tableName
 
 	// Run select
 	err := me.DB.Select(&data, sqlCmd)
@@ -44,7 +64,7 @@ func (me *TableIO[T]) All() []T {
 
 func (me *TableIO[T]) Insert(data T) error {
 
-	sqlCmd := "insert into " + me.tableName + "(" + me.fieldNames + ") values (" + GetStructValues(data) + ")"
+	sqlCmd := "insert into " + me.tableName + "(" + me.dbSelectListAll + ") values (" + GetStructValues(data) + ")"
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
