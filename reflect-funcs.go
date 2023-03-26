@@ -12,21 +12,6 @@ import (
 	"github.com/katasec/utils/errx"
 )
 
-func GetTableName[T any]() string {
-	var data []T
-
-	// Tablename is dervied from the name of the objects's Type
-	tableName := reflect.TypeOf(data).String()
-
-	// Remove package names from the resulting string
-	if strings.Contains(tableName, ".") {
-		tableName = strings.Split(tableName, ".")[1]
-	}
-
-	// Add an S
-	return tableName + "s"
-}
-
 func GetDbColumnNames[T any]() string {
 
 	var sb strings.Builder

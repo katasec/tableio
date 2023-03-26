@@ -1,8 +1,8 @@
 package reflectx
 
 import (
-	"fmt"
 	"reflect"
+	"strings"
 )
 
 type FieldInfo struct {
@@ -37,10 +37,6 @@ func GetStructFields[T any](tags ...string) []string {
 			fields = append(fields, f.Name)
 		}
 
-		//f.Tag.Get("db")
-
-		// Add column name to list
-		fmt.Printf("%d. The name is  %s\n", i, f.Name)
 	}
 
 	return fields
@@ -117,4 +113,19 @@ func GetDbStructFields[T any](tags ...string) []string {
 	}
 
 	return fields
+}
+
+func GetTableName[T any]() string {
+	var data []T
+
+	// Tablename is dervied from the name of the objects's Type
+	tableName := reflect.TypeOf(data).String()
+
+	// Remove package names from the resulting string
+	if strings.Contains(tableName, ".") {
+		tableName = strings.Split(tableName, ".")[1]
+	}
+
+	// Add an S
+	return tableName + "s"
 }

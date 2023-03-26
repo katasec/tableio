@@ -14,6 +14,7 @@ type Hello struct {
 	Message  string `db:"message"`
 	Message1 string `db:"message1"`
 	Message2 string `db:"message2"`
+	Message4 string
 }
 
 func TestCreateTable(t *testing.T) {
@@ -21,27 +22,34 @@ func TestCreateTable(t *testing.T) {
 	// Create New Table from struct definition
 	helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 	errx.PanicOnError(err)
+
 	helloTable.CreateTableIfNotExists()
 
 	// Insert data in to table
-	helloTable.Insert(Hello{Message: "Hi One !"})
-	helloTable.Insert(Hello{Message: "Hi Two !"})
-	helloTable.Insert(Hello{Message: "Hi Three !"})
+	// helloTable.Insert(Hello{Message: "Hi One !"})
+	// helloTable.Insert(Hello{Message: "Hi Two !"})
+	// helloTable.Insert(Hello{Message: "Hi Three !"})
 
 	// Read Data
-	data := helloTable.All()
-	for _, item := range data {
-		fmt.Println(item.Message)
-	}
+	// data := helloTable.All()
+	// for _, item := range data {
+	// 	fmt.Println(item.Message)
+	// }
 	// Delete table
-	helloTable.DeleteTableIfExists()
+	// helloTable.DeleteTableIfExists()
 
 	// Close DB connection
-	helloTable.Close()
+	// helloTable.Close()
 }
 
 func TestGetStructFields(t *testing.T) {
-	reflectx.GetStructFields[Hello]()
+	fields := reflectx.GetStructFields[Hello]()
+	if len(fields) == 0 {
+		fmt.Println("fields was zero")
+	} else {
+		fmt.Println(strings.Join(fields, ","))
+	}
+
 }
 
 func TestGetDbColumnNames(t *testing.T) {
@@ -58,7 +66,6 @@ func TestGetDbColumnNames(t *testing.T) {
 }
 
 func TestGetDbStructFieldsByTag(t *testing.T) {
-	//x := make(map[string][]string)
 
 	// Create a test struct
 	type Hello struct {
@@ -74,26 +81,7 @@ func TestGetDbStructFieldsByTag(t *testing.T) {
 
 }
 
-func TestGetStructFieldsX(t *testing.T) {
-
-	type Hello struct {
-		Message0 string `db:"message0"`
-		Message1 string `db:"message1"`
-		Message2 string `db:"message2"`
-		Message3 string
-	}
-
-	x := reflectx.GetStructFieldsX[Hello]()
-
-	for _, j := range x {
-		fmt.Println(j.FieldName + " " + j.FieldType)
-	}
-}
-
 func TestGenSqlForFields(t *testing.T) {
-	// Create New Table from struct definition
-	// helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
-	// helloTable.
 
 	fields := reflectx.GetStructFieldsX[Hello]()
 

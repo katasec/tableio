@@ -1,6 +1,7 @@
 package tableio
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -14,23 +15,24 @@ type TableIO[T any] struct {
 	tableName       string
 	dbSelectListAll string
 	fields          []reflectx.FieldInfo
+	dbFields        []string
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
-	db, err := sqlx.Connect("sqlite3", "test.db")
+	db, err := sqlx.Connect(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	selectFields := reflectx.GetDbStructFields[T]()
-	selectList := strings.Join(selectFields, ", ")
+	//selectFields := reflectx.GetDbStructFields[T]()
+	//selectList := strings.Join(selectFields, ", ")
 
-	//allSelectList :=
 	tableio := &TableIO[T]{
-		DB:              db,
-		dbSelectListAll: selectList, //GetDbColumnNames[T](),
-		tableName:       GetTableName[T](),
-		fields:          reflectx.GetStructFieldsX[T](),
+		DB: db,
+		//dbSelectListAll: selectList, //GetDbColumnNames[T](),
+		tableName: reflectx.GetTableName[T](),
+		fields:    reflectx.GetStructFieldsX[T](),
+		dbFields:  reflectx.GetDbStructFields[T](),
 	}
 
 	return tableio, nil
@@ -78,7 +80,7 @@ func (me *TableIO[T]) CreateTableIfNotExists() error {
 
 	var sb strings.Builder
 
-	tableName := GetTableName[T]()
+	tableName := reflectx.GetTableName[T]()
 
 	// Start Create Table Commands
 	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
@@ -87,14 +89,15 @@ func (me *TableIO[T]) CreateTableIfNotExists() error {
 	sb.WriteString(GenSqlForStructFields[T]())
 
 	// End Command
-	sb.WriteString(")")
+	sb.WriteString(");")
 
 	// Generate string
 	sqlCmd := sb.String()
-	//fmt.Println(sqlCmd)
+	fmt.Println(sqlCmd)
 
 	// Execute SQL to create table
-	_, err := me.DB.Exec(sqlCmd)
+	result, err := me.DB.Exec(sqlCmd)
+	fmt.Println(result)
 	errx.PanicOnError(err)
 
 	return nil
@@ -102,7 +105,7 @@ func (me *TableIO[T]) CreateTableIfNotExists() error {
 
 func (me *TableIO[T]) DeleteTableIfExists() {
 
-	tableName := GetTableName[T]()
+	tableName := reflectx.GetTableName[T]()
 
 	// Start Create Table Commands
 	sqlCmd := "DROP TABLE IF EXISTS " + tableName + ";"
