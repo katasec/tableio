@@ -1,4 +1,4 @@
-package tableio
+package main
 
 import (
 	"fmt"
@@ -11,11 +11,11 @@ import (
 )
 
 type TableIO[T any] struct {
-	DB              *sqlx.DB
-	tableName       string
-	dbSelectListAll string
-	fields          []reflectx.FieldInfo
-	dbFields        []string
+	DB          *sqlx.DB
+	tableName   string
+	dbFieldsAll string
+	fields      []reflectx.FieldInfo
+	dbFields    []string
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
@@ -24,15 +24,12 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 		return nil, err
 	}
 
-	//selectFields := reflectx.GetDbStructFields[T]()
-	//selectList := strings.Join(selectFields, ", ")
-
 	tableio := &TableIO[T]{
-		DB: db,
-		//dbSelectListAll: selectList, //GetDbColumnNames[T](),
-		tableName: reflectx.GetTableName[T](),
-		fields:    reflectx.GetStructFieldsX[T](),
-		dbFields:  reflectx.GetDbStructFields[T](),
+		DB:          db,
+		tableName:   reflectx.GetTableName[T](),
+		fields:      reflectx.GetStructFieldsX[T](),
+		dbFields:    reflectx.GetDbStructFields[T](),
+		dbFieldsAll: strings.Join(reflectx.GetDbStructFields[T](), ","),
 	}
 
 	return tableio, nil
@@ -54,7 +51,7 @@ func (me *TableIO[T]) SelectList() string {
 func (me *TableIO[T]) All() []T {
 	var data []T
 
-	sqlCmd := "select " + me.dbSelectListAll + " from " + me.tableName
+	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
 
 	// Run select
 	err := me.DB.Select(&data, sqlCmd)
@@ -64,9 +61,21 @@ func (me *TableIO[T]) All() []T {
 	return data
 }
 
+// Insert
+// Inserts data into the table
+// Input:
+//
+//	data - The data to insert
+//
+// Output:
+//
+//	nil - The data was successfully inserted
+//	error - An error occurred while inserting the data
 func (me *TableIO[T]) Insert(data T) error {
 
-	sqlCmd := "insert into " + me.tableName + "(" + me.dbSelectListAll + ") values (" + GetStructValues(data) + ")"
+	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + GetStructValues(data) + ")"
+
+	fmt.Println(sqlCmd)
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
@@ -76,7 +85,12 @@ func (me *TableIO[T]) Insert(data T) error {
 	return nil
 }
 
-func (me *TableIO[T]) CreateTableIfNotExists() error {
+func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
+
+	var debug bool
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
 
 	var sb strings.Builder
 
@@ -93,12 +107,13 @@ func (me *TableIO[T]) CreateTableIfNotExists() error {
 
 	// Generate string
 	sqlCmd := sb.String()
-	fmt.Println(sqlCmd)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
 
 	// Execute SQL to create table
-	result, err := me.DB.Exec(sqlCmd)
-	fmt.Println(result)
-	errx.PanicOnError(err)
+	_, err := me.DB.Exec(sqlCmd)
+	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
 
 	return nil
 }
@@ -115,6 +130,7 @@ func (me *TableIO[T]) DeleteTableIfExists() {
 	errx.PanicOnError(err)
 
 }
+
 func (me *TableIO[T]) Close() {
 	me.DB.Close()
 }

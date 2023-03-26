@@ -1,4 +1,4 @@
-package tableio
+package main
 
 import (
 	"fmt"
@@ -52,18 +52,18 @@ func TestGetStructFields(t *testing.T) {
 
 }
 
-func TestGetDbColumnNames(t *testing.T) {
+// func TestGetDbColumnNames(t *testing.T) {
 
-	// Create a test struct
-	type Hello struct {
-		Message0  string `db:"message1"`
-		Message1  string `db:"message2"`
-		TitleCase string `db:"titlecase"`
-	}
+// 	// Create a test struct
+// 	type Hello struct {
+// 		Message0  string `db:"message1"`
+// 		Message1  string `db:"message2"`
+// 		TitleCase string `db:"titlecase"`
+// 	}
 
-	columns := GetDbColumnNames[Hello]()
-	fmt.Println(columns)
-}
+// 	columns := GetDbColumnNames[Hello]()
+// 	fmt.Println(columns)
+// }
 
 func TestGetDbStructFieldsByTag(t *testing.T) {
 
@@ -94,5 +94,5 @@ func TestSelectList(t *testing.T) {
 	helloTable, _ := NewTableIO[Hello]("sqlite3", "test.db")
 
 	fmt.Println(helloTable.SelectList())
-	fmt.Println(helloTable.dbSelectListAll)
+	fmt.Println(helloTable.dbFieldsAll)
 }

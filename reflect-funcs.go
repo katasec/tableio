@@ -1,4 +1,4 @@
-package tableio
+package main
 
 import (
 	"errors"
@@ -12,32 +12,32 @@ import (
 	"github.com/katasec/utils/errx"
 )
 
-func GetDbColumnNames[T any]() string {
+// func GetDbColumnNames[T any]() string {
 
-	var sb strings.Builder
+// 	var sb strings.Builder
 
-	// Instantiate Struct of type T to use for reflection
-	var myStruct T
-	myType := reflect.TypeOf(myStruct)
+// 	// Instantiate Struct of type T to use for reflection
+// 	var myStruct T
+// 	myType := reflect.TypeOf(myStruct)
 
-	// Iterate through fields
-	numFields := myType.NumField()
-	for i := 0; i < numFields; i++ {
+// 	// Iterate through fields
+// 	numFields := myType.NumField()
+// 	for i := 0; i < numFields; i++ {
 
-		// Get SQL field from strut tag for current field
-		currField := myType.Field(i)
-		colName := getDbColumnName(currField) + ","
+// 		// Get SQL field from strut tag for current field
+// 		currField := myType.Field(i)
+// 		colName := getDbColumnName(currField) + ","
 
-		// Add column name to list
-		sb.WriteString(colName)
-	}
+// 		// Add column name to list
+// 		sb.WriteString(colName)
+// 	}
 
-	// Remove trailing ","
-	result := TrimSuffix(sb.String(), ",")
+// 	// Remove trailing ","
+// 	result := TrimSuffix(sb.String(), ",")
 
-	// Return columns
-	return result
-}
+// 	// Return columns
+// 	return result
+// }
 
 // getDbColumnName Get the database column for the given struct field  from its struct tag
 func getDbColumnName(f reflect.StructField) string {
@@ -163,7 +163,8 @@ func ToSnakeCase(str string) string {
 }
 
 func TrimSuffix(s, suffix string) string {
-	if strings.HasSuffix(s, suffix) {
+	hasSuffix := strings.HasSuffix(s, suffix)
+	if hasSuffix {
 		s = s[:len(s)-len(suffix)]
 	}
 	return s
