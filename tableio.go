@@ -73,7 +73,7 @@ func (me *TableIO[T]) All() []T {
 //	error - An error occurred while inserting the data
 func (me *TableIO[T]) Insert(data T) error {
 
-	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + GetStructValues(data) + ")"
+	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(data) + ")"
 
 	fmt.Println(sqlCmd)
 
@@ -100,7 +100,7 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
 
 	// Add fields
-	sb.WriteString(GenSqlForStructFields[T]())
+	sb.WriteString(reflectx.GenSqlForStructFields[T]())
 
 	// End Command
 	sb.WriteString(");")
