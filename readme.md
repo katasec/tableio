@@ -14,13 +14,23 @@ type Hello struct {
 
 ## Connect to your DB
 
-The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Sepcify your struct's type as a type parameter, for e.g., the below exampple passed `[hello]` as a type parameter:
+The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Specify your struct's type as a *type parameter*, for e.g., the below example passes `[hello]` as a type parameter:
 
 ```go
 helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 ```
 
-Note the database drivername and connection string are also passed above.
+Note the database drivername and connection string are passed in the constructor.
+
+The fields in the type parameter (For e.g. the struct `Hello` as a field called `Messages` above) are  used to determine the structure of your database table. For e.g., in the above case, the following table will be generated:
+
+```sql
+CREATE TABLE IF NOT EXISTS Hellos (
+        message VARCHAR(255) NULL
+);
+```
+
+
 
 
 ## Create the table
