@@ -35,19 +35,6 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 	return tableio, nil
 }
 
-func (me *TableIO[T]) SelectList() string {
-	var sb strings.Builder
-
-	for i, field := range me.fields {
-		sb.WriteString(field.FieldName)
-		if i < len(me.fields) {
-			sb.WriteString(",")
-		}
-	}
-
-	return sb.String()
-}
-
 func (me *TableIO[T]) All() []T {
 	var data []T
 

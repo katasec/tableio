@@ -69,6 +69,5 @@ func TestGenSqlForFields(t *testing.T) {
 func TestSelectList(t *testing.T) {
 	helloTable, _ := NewTableIO[Hello]("sqlite3", "test.db")
 
-	fmt.Println(helloTable.SelectList())
 	fmt.Println(helloTable.dbFieldsAll)
 }
