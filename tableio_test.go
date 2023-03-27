@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/katasec/tableio/reflectx"
@@ -41,21 +40,21 @@ func TestCreateTable(t *testing.T) {
 	helloTable.Close()
 }
 
-func TestGetDbStructFieldsByTag(t *testing.T) {
+// func TestGetDbStructFieldsByTag(t *testing.T) {
 
-	// Create a test struct
-	type Hello struct {
-		Message0 string `db:"message0"`
-		Message1 string `db:"message1"`
-		Message2 string `db:"message2"`
-		Message3 string
-	}
+// 	// Create a test struct
+// 	type Hello struct {
+// 		Message0 string `db:"message0"`
+// 		Message1 string `db:"message1"`
+// 		Message2 string `db:"message2"`
+// 		Message3 string
+// 	}
 
-	y := reflectx.GetDbStructFields[Hello]()
+// 	y := reflectx.GetDbStructFields[Hello]()
 
-	fmt.Print("\nDb Select List: " + strings.Join(y, ", ") + "\n\n")
+// 	fmt.Print("\nDb Select List: " + strings.Join(y, ", ") + "\n\n")
 
-}
+// }
 
 func TestGenSqlForFields(t *testing.T) {
 

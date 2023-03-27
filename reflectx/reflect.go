@@ -1,13 +1,10 @@
 package reflectx
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
-
-	"github.com/katasec/utils/errx"
 )
 
 type FieldInfo struct {
@@ -58,8 +55,8 @@ func GetStructFieldsX[T any](tags ...string) []FieldInfo {
 	return fieldInfo
 }
 
-func GetDbStructFields[T any](tags ...string) []string {
-	var fields []string
+func GetDbStructFields[T any](tags ...string) []FieldInfo {
+	var fieldInfo []FieldInfo
 	var filter string
 
 	// DB fields have a 'db' tag
@@ -81,12 +78,15 @@ func GetDbStructFields[T any](tags ...string) []string {
 		f := myType.Field(i)
 
 		if f.Tag.Get(filter) != "" {
-			fields = append(fields, f.Tag.Get(filter))
+			fieldInfo = append(fieldInfo, FieldInfo{
+				FieldName: f.Tag.Get(filter),
+				FieldType: f.Type.Name(),
+			})
 		}
 
 	}
 
-	return fields
+	return fieldInfo
 }
 
 func GetTableName[T any]() string {
@@ -141,77 +141,27 @@ func getValue(field reflect.Value) string {
 func GenSqlForFields(fields []FieldInfo) string {
 	var sb strings.Builder
 	var sql string
-	for _, field := range fields {
+	for i, field := range fields {
 		switch field.FieldType {
 		case "string":
-			sql = fmt.Sprintf("\t%s VARCHAR(255) NULL \n", field.FieldName)
+			sql = fmt.Sprintf("\t%s VARCHAR(255) NULL", field.FieldName)
 			sb.WriteString(sql)
 		case "int32":
-			sql = fmt.Sprintf("\t%s INTEGER NULL \n", field.FieldName)
+			sql = fmt.Sprintf("\t%s INTEGER NULL", field.FieldName)
 			sb.WriteString(sql)
 		default:
-			sql = fmt.Sprintf("\t%s TEXT NULL \n", field.FieldName)
+			sql = fmt.Sprintf("\t%s TEXT NULL", field.FieldName)
 			sb.WriteString(sql)
 		}
+
+		if i < len(fields)-1 {
+			sb.WriteString(",\n")
+		} else {
+			sb.WriteString("\n")
+		}
+
 	}
 	//fieldName := f.Name
 	return sb.String()
 
-}
-
-// GenSqlForStructFields Generates SQL for creating database columns for a given struct
-func GenSqlForStructFields[T any]() string {
-	var sb strings.Builder
-
-	var myStruct T
-
-	t := reflect.TypeOf(myStruct)
-	numFields := t.NumField()
-
-	suffix := ""
-
-	for i := 0; i < numFields; i++ {
-
-		// Get current field
-		currField := t.Field(i)
-		// Append comma for all except last field
-		if i < numFields-1 {
-			suffix = ","
-		} else {
-			suffix = ""
-		}
-
-		// Gen SQL for field and add to buffer
-		sb.WriteString(genSqlByType(currField) + suffix + "\n")
-	}
-	return sb.String()
-}
-
-func genSqlByType(f reflect.StructField) string {
-
-	colName := getDbColumnName(f)
-
-	switch f.Type.String() {
-	case "string":
-		return fmt.Sprintf("\t%s VARCHAR(255) NULL", colName)
-	case "int32":
-		return fmt.Sprintf("\t%s INTEGER NULL", colName)
-	default:
-		return fmt.Sprintf("\t%s TEXT NULL", colName)
-	}
-
-}
-
-func getDbColumnName(f reflect.StructField) string {
-	// Get DB struct tag
-	colName := string(f.Tag.Get("db"))
-
-	// Panic if DB struct missing, provide example
-	if f.Tag.Get("db") == "" {
-		example := fmt.Sprintf("For e.g:\n\n\t %s %s `db:\"%s\"`", f.Name, f.Type.String(), ToSnakeCase(f.Name))
-		errMsg := fmt.Sprintf("%s field is missing a 'db' struct tag. %s", f.Name, example)
-		errx.PanicOnError(errors.New(errMsg))
-	}
-	// return col name
-	return colName
 }

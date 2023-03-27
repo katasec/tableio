@@ -14,8 +14,7 @@ type TableIO[T any] struct {
 	DB          *sqlx.DB
 	tableName   string
 	dbFieldsAll string
-	fields      []reflectx.FieldInfo
-	dbFields    []string
+	dbFields    []reflectx.FieldInfo
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
@@ -25,12 +24,20 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 	}
 
 	tableio := &TableIO[T]{
-		DB:          db,
-		tableName:   reflectx.GetTableName[T](),
-		fields:      reflectx.GetStructFieldsX[T](),
-		dbFields:    reflectx.GetDbStructFields[T](),
-		dbFieldsAll: strings.Join(reflectx.GetDbStructFields[T](), ","),
+		DB:        db,
+		tableName: reflectx.GetTableName[T](),
+		dbFields:  reflectx.GetDbStructFields[T](),
 	}
+
+	// Construct select list for table
+	list := ""
+	for i, j := range tableio.dbFields {
+		list += j.FieldName
+		if i < len(tableio.dbFields)-1 {
+			list += ","
+		}
+	}
+	tableio.dbFieldsAll = list
 
 	return tableio, nil
 }
@@ -73,8 +80,8 @@ func (me *TableIO[T]) Insert(data T) error {
 }
 
 func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
-
 	var debug bool
+
 	if len(verbose) > 0 {
 		debug = verbose[0]
 	}
@@ -83,11 +90,11 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 
 	tableName := reflectx.GetTableName[T]()
 
-	// Start Create Table Commands
+	// Start Create Table Command
 	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
 
 	// Add fields
-	sb.WriteString(reflectx.GenSqlForStructFields[T]())
+	sb.WriteString(reflectx.GenSqlForFields(me.dbFields))
 
 	// End Command
 	sb.WriteString(");")
@@ -98,7 +105,7 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 		fmt.Println(sqlCmd)
 	}
 
-	// Execute SQL to create table
+	//Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
 
