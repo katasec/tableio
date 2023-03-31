@@ -1,8 +1,7 @@
-package tableio
+package main
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/katasec/tableio/reflectx"
@@ -21,6 +20,7 @@ func TestCreateTable(t *testing.T) {
 	// Create New Table from struct definition
 	helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 	errx.PanicOnError(err)
+
 	helloTable.CreateTableIfNotExists()
 
 	// Insert data in to table
@@ -40,64 +40,27 @@ func TestCreateTable(t *testing.T) {
 	helloTable.Close()
 }
 
-func TestGetStructFields(t *testing.T) {
-	reflectx.GetStructFields[Hello]()
-}
+// func TestGetDbStructFieldsByTag(t *testing.T) {
 
-func TestGetDbColumnNames(t *testing.T) {
+// 	// Create a test struct
+// 	type Hello struct {
+// 		Message0 string `db:"message0"`
+// 		Message1 string `db:"message1"`
+// 		Message2 string `db:"message2"`
+// 		Message3 string
+// 	}
 
-	// Create a test struct
-	type Hello struct {
-		Message0  string `db:"message1"`
-		Message1  string `db:"message2"`
-		TitleCase string `db:"titlecase"`
-	}
+// 	y := reflectx.GetDbStructFields[Hello]()
 
-	columns := GetDbColumnNames[Hello]()
-	fmt.Println(columns)
-}
+// 	fmt.Print("\nDb Select List: " + strings.Join(y, ", ") + "\n\n")
 
-func TestGetDbStructFieldsByTag(t *testing.T) {
-	//x := make(map[string][]string)
-
-	// Create a test struct
-	type Hello struct {
-		Message0 string `db:"message0"`
-		Message1 string `db:"message1"`
-		Message2 string `db:"message2"`
-		Message3 string
-	}
-
-	y := reflectx.GetDbStructFields[Hello]()
-
-	fmt.Print("\nDb Select List: " + strings.Join(y, ", ") + "\n\n")
-
-}
-
-func TestGetStructFieldsX(t *testing.T) {
-
-	type Hello struct {
-		Message0 string `db:"message0"`
-		Message1 string `db:"message1"`
-		Message2 string `db:"message2"`
-		Message3 string
-	}
-
-	x := reflectx.GetStructFieldsX[Hello]()
-
-	for _, j := range x {
-		fmt.Println(j.FieldName + " " + j.FieldType)
-	}
-}
+// }
 
 func TestGenSqlForFields(t *testing.T) {
-	// Create New Table from struct definition
-	// helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
-	// helloTable.
 
 	fields := reflectx.GetStructFieldsX[Hello]()
 
-	x := GenSqlForFields(fields)
+	x := reflectx.GenSqlForFields(fields)
 
 	fmt.Println(x)
 }
@@ -105,6 +68,5 @@ func TestGenSqlForFields(t *testing.T) {
 func TestSelectList(t *testing.T) {
 	helloTable, _ := NewTableIO[Hello]("sqlite3", "test.db")
 
-	fmt.Println(helloTable.SelectList())
-	fmt.Println(helloTable.dbSelectListAll)
+	fmt.Println(helloTable.dbFieldsAll)
 }

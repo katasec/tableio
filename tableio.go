@@ -1,6 +1,7 @@
-package tableio
+package main
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/jmoiron/sqlx"
@@ -10,49 +11,41 @@ import (
 )
 
 type TableIO[T any] struct {
-	DB              *sqlx.DB
-	tableName       string
-	dbSelectListAll string
-	fields          []reflectx.FieldInfo
+	DB          *sqlx.DB
+	tableName   string
+	dbFieldsAll string
+	dbFields    []reflectx.FieldInfo
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
-	db, err := sqlx.Connect("sqlite3", "test.db")
+	db, err := sqlx.Connect(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	selectFields := reflectx.GetDbStructFields[T]()
-	selectList := strings.Join(selectFields, ", ")
-
-	//allSelectList :=
 	tableio := &TableIO[T]{
-		DB:              db,
-		dbSelectListAll: selectList, //GetDbColumnNames[T](),
-		tableName:       GetTableName[T](),
-		fields:          reflectx.GetStructFieldsX[T](),
+		DB:        db,
+		tableName: reflectx.GetTableName[T](),
+		dbFields:  reflectx.GetDbStructFields[T](),
 	}
 
-	return tableio, nil
-}
-
-func (me *TableIO[T]) SelectList() string {
-	var sb strings.Builder
-
-	for i, field := range me.fields {
-		sb.WriteString(field.FieldName)
-		if i < len(me.fields) {
-			sb.WriteString(",")
+	// Construct select list for table
+	list := ""
+	for i, j := range tableio.dbFields {
+		list += j.FieldName
+		if i < len(tableio.dbFields)-1 {
+			list += ","
 		}
 	}
+	tableio.dbFieldsAll = list
 
-	return sb.String()
+	return tableio, nil
 }
 
 func (me *TableIO[T]) All() []T {
 	var data []T
 
-	sqlCmd := "select " + me.dbSelectListAll + " from " + me.tableName
+	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
 
 	// Run select
 	err := me.DB.Select(&data, sqlCmd)
@@ -62,9 +55,21 @@ func (me *TableIO[T]) All() []T {
 	return data
 }
 
+// Insert
+// Inserts data into the table
+// Input:
+//
+//	data - The data to insert
+//
+// Output:
+//
+//	nil - The data was successfully inserted
+//	error - An error occurred while inserting the data
 func (me *TableIO[T]) Insert(data T) error {
 
-	sqlCmd := "insert into " + me.tableName + "(" + me.dbSelectListAll + ") values (" + GetStructValues(data) + ")"
+	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(data) + ")"
+
+	fmt.Println(sqlCmd)
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
@@ -74,35 +79,42 @@ func (me *TableIO[T]) Insert(data T) error {
 	return nil
 }
 
-func (me *TableIO[T]) CreateTableIfNotExists() error {
+func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
+	var debug bool
+
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
 
 	var sb strings.Builder
 
-	tableName := GetTableName[T]()
+	tableName := reflectx.GetTableName[T]()
 
-	// Start Create Table Commands
+	// Start Create Table Command
 	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
 
 	// Add fields
-	sb.WriteString(GenSqlForStructFields[T]())
+	sb.WriteString(reflectx.GenSqlForFields(me.dbFields))
 
 	// End Command
-	sb.WriteString(")")
+	sb.WriteString(");")
 
 	// Generate string
 	sqlCmd := sb.String()
-	//fmt.Println(sqlCmd)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
 
-	// Execute SQL to create table
+	//Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
-	errx.PanicOnError(err)
+	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
 
 	return nil
 }
 
 func (me *TableIO[T]) DeleteTableIfExists() {
 
-	tableName := GetTableName[T]()
+	tableName := reflectx.GetTableName[T]()
 
 	// Start Create Table Commands
 	sqlCmd := "DROP TABLE IF EXISTS " + tableName + ";"
@@ -112,6 +124,7 @@ func (me *TableIO[T]) DeleteTableIfExists() {
 	errx.PanicOnError(err)
 
 }
+
 func (me *TableIO[T]) Close() {
 	me.DB.Close()
 }

@@ -3,47 +3,14 @@ package reflectx
 import (
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
 type FieldInfo struct {
 	FieldName string
 	FieldType string
 	DbTag     string
-}
-
-func GetStructFields[T any](tags ...string) []string {
-	var fields []string
-	var filter string
-
-	if len(tags) > 0 {
-		filter = tags[0]
-	}
-	// Instantiate Struct of type T to use for reflection
-	var myStruct T
-	myType := reflect.TypeOf(myStruct)
-
-	// Iterate through fields
-	numFields := myType.NumField()
-	for i := 0; i < numFields; i++ {
-
-		// Get f info
-		f := myType.Field(i)
-
-		if filter != "" {
-			if f.Tag.Get(filter) != "" {
-				fields = append(fields, f.Name)
-			}
-		} else {
-			fields = append(fields, f.Name)
-		}
-
-		//f.Tag.Get("db")
-
-		// Add column name to list
-		fmt.Printf("%d. The name is  %s\n", i, f.Name)
-	}
-
-	return fields
 }
 
 func GetStructFieldsX[T any](tags ...string) []FieldInfo {
@@ -88,8 +55,8 @@ func GetStructFieldsX[T any](tags ...string) []FieldInfo {
 	return fieldInfo
 }
 
-func GetDbStructFields[T any](tags ...string) []string {
-	var fields []string
+func GetDbStructFields[T any](tags ...string) []FieldInfo {
+	var fieldInfo []FieldInfo
 	var filter string
 
 	// DB fields have a 'db' tag
@@ -111,10 +78,90 @@ func GetDbStructFields[T any](tags ...string) []string {
 		f := myType.Field(i)
 
 		if f.Tag.Get(filter) != "" {
-			fields = append(fields, f.Tag.Get(filter))
+			fieldInfo = append(fieldInfo, FieldInfo{
+				FieldName: f.Tag.Get(filter),
+				FieldType: f.Type.Name(),
+			})
 		}
 
 	}
 
-	return fields
+	return fieldInfo
+}
+
+func GetTableName[T any]() string {
+	var data []T
+
+	// Tablename is dervied from the name of the objects's Type
+	tableName := reflect.TypeOf(data).String()
+
+	// Remove package names from the resulting string
+	if strings.Contains(tableName, ".") {
+		tableName = strings.Split(tableName, ".")[1]
+	}
+
+	// Add an S
+	return tableName + "s"
+}
+
+// GetStructValues Gets struct values
+func GetStructValues[T any](data T) string {
+
+	var sb strings.Builder
+
+	// Use reflection to inspect struct values
+	dataValue := reflect.ValueOf(data)
+
+	// Iterate thru fields in struct
+	numFields := dataValue.NumField()
+	for i := 0; i < numFields; i++ {
+		// Get next field and value
+		myValue := getValue(dataValue.Field(i))
+
+		// Comma separated
+		sb.WriteString("'" + myValue + "',")
+	}
+
+	result := TrimSuffix(sb.String(), ",")
+
+	return result
+}
+
+func getValue(field reflect.Value) string {
+	switch field.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(field.Int(), 10)
+	case reflect.String:
+		return field.String()
+	}
+
+	return ""
+}
+
+func GenSqlForFields(fields []FieldInfo) string {
+	var sb strings.Builder
+	var sql string
+	for i, field := range fields {
+		switch field.FieldType {
+		case "string":
+			sql = fmt.Sprintf("\t%s VARCHAR(255) NULL", field.FieldName)
+			sb.WriteString(sql)
+		case "int32":
+			sql = fmt.Sprintf("\t%s INTEGER NULL", field.FieldName)
+			sb.WriteString(sql)
+		default:
+			sql = fmt.Sprintf("\t%s TEXT NULL", field.FieldName)
+			sb.WriteString(sql)
+		}
+
+		if i < len(fields)-1 {
+			sb.WriteString(",\n")
+		} else {
+			sb.WriteString("\n")
+		}
+
+	}
+	//fieldName := f.Name
+	return sb.String()
+
 }
