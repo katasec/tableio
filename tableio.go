@@ -69,8 +69,6 @@ func (me *TableIO[T]) Insert(data T) error {
 
 	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(data) + ")"
 
-	fmt.Println(sqlCmd)
-
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnError(err)
