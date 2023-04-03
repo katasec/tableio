@@ -1,24 +1,27 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
+	"reflect"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/katasec/tableio/reflectx"
 	"github.com/katasec/utils/errx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type TableIO[T any] struct {
-	DB          *sqlx.DB
+	DB          *sql.DB
 	tableName   string
 	dbFieldsAll string
 	dbFields    []reflectx.FieldInfo
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
-	db, err := sqlx.Connect(driverName, dataSourceName)
+	//db, err := sqlx.Connect(driverName, dataSourceName)
+	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
@@ -44,32 +47,38 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 
 func (me *TableIO[T]) All() []T {
 	var data []T
-
+	var dataType T
+	// Construct select statement
 	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
 
-	// Run select
-	err := me.DB.Select(&data, sqlCmd)
-	errx.PanicOnError(err)
+	rows, err := me.DB.Query(sqlCmd)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	s := reflect.ValueOf(&dataType).Elem()
+	numCols := s.NumField()
+	columns := make([]interface{}, numCols)
+	for i := 0; i < numCols; i++ {
+		field := s.Field(i)
+		columns[i] = field.Addr().Interface()
+	}
+
+	for rows.Next() {
+		err = rows.Scan(columns...)
+		if err != nil {
+			log.Fatal(err)
+		}
+		data = append(data, dataType)
+	}
 
 	// return data
 	return data
 }
 
-// Insert
-// Inserts data into the table
-// Input:
-//
-//	data - The data to insert
-//
-// Output:
-//
-//	nil - The data was successfully inserted
-//	error - An error occurred while inserting the data
 func (me *TableIO[T]) Insert(data T) error {
 
 	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(data) + ")"
-
-	fmt.Println(sqlCmd)
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
