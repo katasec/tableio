@@ -1,6 +1,6 @@
 # Overview 
 
-TableIO helps with persisting structs into your datbase. Currently only sqlite is supported.
+`tableio` helps with quick proto-typing in persisting structs into a database. Currently only sqlite is supported.
 
 ## Define a struct
 
@@ -22,7 +22,8 @@ helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 
 Note the database drivername and connection string are passed in the constructor.
 
-The fields in the type parameter (For e.g. the struct `Hello` as a field called `Messages` above) are  used to determine the structure of your database table. For e.g., in the above case, the following table will be generated:
+The fields in the type parameter are used to determine the structure of your database table. For e.g., in the above case, the struct `Hello` has a field called `Messages`. As such, 
+the following table will be generated:
 
 ```sql
 CREATE TABLE IF NOT EXISTS Hellos (
