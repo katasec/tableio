@@ -22,8 +22,12 @@ helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 
 Note the database drivername and connection string are passed in the constructor.
 
-The fields in from struct in the type parameter are used to determine the structure of your database table. For e.g., in the above case, the struct `Hello` has a field called `Messages`. As such, 
-the following table will be generated:
+
+
+
+## Create the table
+
+Call the `CreateTableIfNotExists` method to create a table for your struct. The fields from struct in the type parameter are used to generate the structure of your database table. For e.g., in the above case, the struct `Hello` has a field called `Messages`. As such, the following table will be generated :
 
 ```sql
 CREATE TABLE IF NOT EXISTS Hellos (
@@ -31,12 +35,7 @@ CREATE TABLE IF NOT EXISTS Hellos (
 );
 ```
 
-
-
-
-## Create the table
-
-Call the `CreateTableIfNotExists` method to create a table for your struct:
+By running the following command:
 
 ```go
 helloTable.CreateTableIfNotExists()
