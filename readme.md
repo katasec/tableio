@@ -1,6 +1,6 @@
 # Overview 
 
-`tableio` helps with quick proto-typing in persisting structs into a database. Currently only sqlite is supported.
+`tableio` helps persisting structs into a database. Currently only sqlite is supported.
 
 ## Define a struct
 
