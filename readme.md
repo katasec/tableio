@@ -1,6 +1,6 @@
 # Overview 
 
-`tableio` helps persisting structs into a database. Currently only sqlite is supported.
+`tableio` helps with quick proto-typing in persisting structs into a database. Currently only sqlite is supported.
 
 ## Define a struct
 
@@ -22,12 +22,8 @@ helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
 
 Note the database drivername and connection string are passed in the constructor.
 
-
-
-
-## Create the table
-
-Call the `CreateTableIfNotExists` method to create a table for your struct. The fields from struct in the type parameter are used to generate the structure of your database table. For e.g., in the above case, the struct `Hello` has a field called `Messages`. As such, the following table will be generated :
+The fields in the type parameter are used to determine the structure of your database table. For e.g., in the above case, the struct `Hello` has a field called `Messages`. As such, 
+the following table will be generated:
 
 ```sql
 CREATE TABLE IF NOT EXISTS Hellos (
@@ -35,19 +31,36 @@ CREATE TABLE IF NOT EXISTS Hellos (
 );
 ```
 
-By running the following command:
+
+
+
+## Create the table
+
+Call the `CreateTableIfNotExists` method to create a table for your struct:
 
 ```go
 helloTable.CreateTableIfNotExists()
 ```
 
-## Insert data
+## Insert data 
 To insert data, call the insert method passing in your struct
+
+- Single Row Insert
+
 ```go
 helloTable.Insert(Hello{Message: "Hi One !"})
-helloTable.Insert(Hello{Message: "Hi Two !"})
-helloTable.Insert(Hello{Message: "Hi Three !"})
 ```
+- Single Row Insert
+```go
+	messages := []Hello{
+		{Message: "Message One !"},
+		{Message: "Message Two !"},
+		{Message: "Message Three !"},
+	}
+
+	helloTable.InsertMany(messages)
+```
+
 You data is now saved in the DB !
 
 
