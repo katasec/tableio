@@ -1,6 +1,7 @@
 package reflectx
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -133,9 +134,13 @@ func getValue(field reflect.Value) string {
 		return strconv.FormatInt(field.Int(), 10)
 	case reflect.String:
 		return field.String()
+	default:
+		bVal, err := json.Marshal(field.Interface())
+		if err != nil {
+			panic(err)
+		}
+		return string(bVal)
 	}
-
-	return ""
 }
 
 func GenSqlForFields(fields []FieldInfo) string {
