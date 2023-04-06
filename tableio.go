@@ -88,6 +88,22 @@ func (me *TableIO[T]) Insert(data T) error {
 	return nil
 }
 
+func (me *TableIO[T]) InsertMany(data []T) error {
+
+	// Gen Sql Command
+	sqlCmd := ""
+	for _, item := range data {
+		sqlCmd += "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(item) + "); \n"
+	}
+
+	// Run Insert
+	_, err := me.DB.Exec(sqlCmd)
+	errx.PanicOnError(err)
+
+	// return data
+	return nil
+}
+
 func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	var debug bool
 
