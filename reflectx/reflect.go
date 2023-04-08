@@ -117,7 +117,7 @@ func GetStructValues[T any](data T) string {
 	numFields := dataValue.NumField()
 	for i := 0; i < numFields; i++ {
 		// Get next field and value
-		myValue := getValue(dataValue.Field(i))
+		myValue := getValueFromStruct(dataValue.Field(i))
 
 		// Comma separated
 		sb.WriteString("'" + myValue + "',")
@@ -128,7 +128,7 @@ func GetStructValues[T any](data T) string {
 	return result
 }
 
-func getValue(field reflect.Value) string {
+func getValueFromStruct(field reflect.Value) string {
 	switch field.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return strconv.FormatInt(field.Int(), 10)

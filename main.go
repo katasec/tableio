@@ -10,12 +10,12 @@ type Shape struct {
 
 type Shapex struct {
 	Name       string `db:"name"`
-	Dimensions dims   `db:"xx"`
+	Dimensions dims   `db:"Dimensions"`
 }
 
 type dims struct {
-	Width  int `db:"width"`
-	Height int `db:"height"`
+	Width  int `db:"Width"`
+	Height int `db:"Height"`
 }
 
 func main() {
@@ -23,46 +23,18 @@ func main() {
 	shapexTable.DeleteTableIfExists()
 	shapexTable.CreateTableIfNotExists()
 
-	shapexTable.Insert(
-		Shapex{
-			Name: "square",
-			Dimensions: dims{
-				Width:  110,
-				Height: 210,
-			},
+	shapexTable.Insert(Shapex{
+		Name: "Square",
+		Dimensions: dims{
+			Width:  100,
+			Height: 100,
 		},
-	)
+	})
+	shapes := shapexTable.All2()
 
-	// Output table
-	shapes := shapexTable.All()
-	for i, shape := range shapes {
-		fmt.Printf("%d. Color:%s, Height:%d, Width:%d \n", i, shape.Name, shape.Dimensions.Height, shape.Dimensions.Width)
+	for i, j := range shapes {
+		fmt.Printf("%d. Name:%s, Height:%d, Width:%d \n", i, j.Name, j.Dimensions.Height, j.Dimensions.Width)
 	}
 
 	shapexTable.Close()
-}
-
-func main2() {
-
-	// Create table
-	shapeTable, _ := NewTableIO[Shape]("sqlite3", "test.db")
-	shapeTable.CreateTableIfNotExists()
-
-	// Single Insert
-	shapeTable.Insert(Shape{
-		Width: 110, Height: 210, Color: "yellow",
-	})
-
-	// Multi Insert
-	shapeTable.InsertMany([]Shape{
-		{Width: 110, Height: 210, Color: "yellow"},
-		{Width: 120, Height: 220, Color: "red"},
-		{Width: 130, Height: 230, Color: "blue"},
-	})
-
-	// Output table
-	shapes := shapeTable.All()
-	for i, shape := range shapes {
-		fmt.Printf("%d. Color:%s, Height:%d, Width:%d \n", i, shape.Color, shape.Height, shape.Width)
-	}
 }
