@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"github.com/katasec/tableio/reflectx"
@@ -208,7 +207,7 @@ func (me *TableIO[T]) All() []T {
 	return data
 }
 
-func (me *TableIO[T]) All2() []T {
+func (me *TableIO[T]) All2() {
 
 	// Construct select statement
 	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
@@ -224,86 +223,33 @@ func (me *TableIO[T]) All2() []T {
 		errx.PanicOnError(err)
 	}
 	count := len(columnTypes)
-	finalRows := []interface{}{}
+
+	// Use reflection to get count of fields in struct
+	var data2 T
+	dataType := reflect.TypeOf(data2)
+	count2 := dataType.NumField()
+
+	//data := map[string]interface{}{}
+	scanArgs := make([]interface{}, count)
+
+	// Loop through fields and create map of field name and type
+	for i := 0; i < count2; i++ {
+		field := dataType.Field(i)
+
+		fieldType := field.Type
+		//fieldName := field.Name
+		scanArgs[i] = reflect.New(fieldType).Interface()
+	}
 
 	// Loop through rows
 	for rows.Next() {
-
-		// Create pointers to each column of appropriate type
-		scanArgs := make([]interface{}, count)
-		for i, v := range columnTypes {
-			switch v.DatabaseTypeName() {
-			case "VARCHAR", "TEXT", "UUID", "TIMESTAMP":
-				scanArgs[i] = new(sql.NullString)
-			case "BOOL":
-				scanArgs[i] = new(sql.NullBool)
-			case "INT4":
-				scanArgs[i] = new(sql.NullInt64)
-			default:
-				scanArgs[i] = new(sql.NullString)
-			}
-		}
 
 		// Scan row into pointers
 		err := rows.Scan(scanArgs...)
 		errx.PanicOnError(err)
 
-		masterData := map[string]interface{}{}
-
-		// Use reflection to get count of fields in struct
-		var data T
-		dataType := reflect.TypeOf(data)
-		count := dataType.NumField()
-
-		// Loop through fields and create map of field name and type
-		for i := 0; i < count; i++ {
-			field := dataType.Field(i)
-
-			fieldName := field.Name
-			fieldType := field.Type
-
-			fmt.Println("The type is:", fieldType)
-
-			if z, ok := (scanArgs[i]).(*sql.NullBool); ok {
-				masterData[fieldName] = z.Bool
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullString); ok {
-				masterData[fieldName] = z.String
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt64); ok {
-				masterData[fieldName] = z.Int64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullFloat64); ok {
-				masterData[fieldName] = z.Float64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt32); ok {
-				masterData[fieldName] = z.Int32
-				continue
-			}
-
-			masterData[fieldName] = scanArgs[i] //reflect.New(fieldType)
-			if fieldType.String() != "string" {
-				masterData[fieldName], _ = strconv.Unquote(scanArgs[i].(string))
-			}
-
-		}
-
-		finalRows = append(finalRows, masterData)
+		//data = append(data, scanArgs)
+		//data[fieldName] = scanArgs[i]
 	}
 
-	z, err := json.Marshal(finalRows)
-	fmt.Println(string(z))
-	errx.PanicOnError(err)
-
-	var data []T
-	json.Unmarshal(z, &data)
-	return data
 }
