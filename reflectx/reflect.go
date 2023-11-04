@@ -102,6 +102,7 @@ func GetTableName[T any]() string {
 	}
 
 	// Add an S
+	tableName = strings.ToLower(tableName)
 	return tableName + "s"
 }
 

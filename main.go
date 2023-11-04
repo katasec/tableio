@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Shape struct {
 	Width  int    `db:"width"`
@@ -19,17 +21,29 @@ type dims struct {
 }
 
 func main() {
-	shapexTable, _ := NewTableIO[Shapex]("sqlite3", "test.db")
+
+	// Create new table of type [shapex] for mysql
+	shapexTable, _ := NewTableIO[Shapex]("mysql", "root:Password123@tcp(127.0.01:3306)/ark")
 	shapexTable.DeleteTableIfExists()
+	//os.Exit(0)
 	shapexTable.CreateTableIfNotExists()
 
 	shapexTable.Insert(Shapex{
-		Name: "Square",
+		Name: "square1",
 		Dimensions: dims{
 			Width:  100,
 			Height: 100,
 		},
 	})
+
+	shapexTable.Insert(Shapex{
+		Name: "square2",
+		Dimensions: dims{
+			Width:  100,
+			Height: 100,
+		},
+	})
+
 	shapes := shapexTable.All2()
 
 	for i, j := range shapes {

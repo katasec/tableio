@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/katasec/tableio/reflectx"
 	"github.com/katasec/utils/errx"
 	_ "github.com/mattn/go-sqlite3"
@@ -103,7 +104,9 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	//Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
-
+	if err == nil {
+		fmt.Println("Create table '" + me.tableName + "' successfully")
+	}
 	return nil
 }
 
@@ -117,6 +120,7 @@ func (me *TableIO[T]) DeleteTableIfExists() {
 	// Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnError(err)
+	fmt.Println("Deleted table '" + me.tableName + "' successfully.")
 
 }
 
@@ -129,7 +133,7 @@ func (me *TableIO[T]) All() []T {
 
 	// Construct select statement
 	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
-	fmt.Println(sqlCmd)
+	//fmt.Println(sqlCmd)
 
 	// Run Query
 	rows, err := me.DB.Query(sqlCmd)
@@ -201,18 +205,19 @@ func (me *TableIO[T]) All() []T {
 
 	z, err := json.Marshal(finalRows)
 	errx.PanicOnError(err)
-	fmt.Println(string(z))
+	//fmt.Println(string(z))
 
 	var data []T
 	json.Unmarshal(z, &data)
 	return data
 }
 
+// All2 Reads all rows form the database via a "select * from <table>"
 func (me *TableIO[T]) All2() []T {
 
 	// Construct select statement
 	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
-	fmt.Println(sqlCmd)
+	//fmt.Println(sqlCmd)
 
 	// Run Query
 	rows, err := me.DB.Query(sqlCmd)
@@ -262,8 +267,6 @@ func (me *TableIO[T]) All2() []T {
 			fieldName := field.Name
 			fieldType := field.Type
 
-			fmt.Println("The type is:", fieldType)
-
 			if z, ok := (scanArgs[i]).(*sql.NullBool); ok {
 				masterData[fieldName] = z.Bool
 				continue
@@ -300,7 +303,7 @@ func (me *TableIO[T]) All2() []T {
 	}
 
 	z, err := json.Marshal(finalRows)
-	fmt.Println(string(z))
+	//fmt.Println(string(z))
 	errx.PanicOnError(err)
 
 	var data []T
