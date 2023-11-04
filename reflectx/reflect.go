@@ -56,6 +56,8 @@ func GetStructFieldsX[T any](tags ...string) []FieldInfo {
 	return fieldInfo
 }
 
+// GetDbStructFields Returns list of fields in a struct of tpye "T" that have
+// a "db" tag
 func GetDbStructFields[T any](tags ...string) []FieldInfo {
 	var fieldInfo []FieldInfo
 	var filter string
@@ -71,13 +73,13 @@ func GetDbStructFields[T any](tags ...string) []FieldInfo {
 	var myStruct T
 	myType := reflect.TypeOf(myStruct)
 
-	// Iterate through fields
-	numFields := myType.NumField()
-	for i := 0; i < numFields; i++ {
+	// Iterate through fields in the Struct
+	for i := 0; i < myType.NumField(); i++ {
 
-		// Get f info
+		// Get current field from struct
 		f := myType.Field(i)
 
+		// Add field name and type to list of fields
 		if f.Tag.Get(filter) != "" {
 			fieldInfo = append(fieldInfo, FieldInfo{
 				FieldName: f.Tag.Get(filter),

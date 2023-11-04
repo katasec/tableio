@@ -22,10 +22,10 @@ type dims struct {
 
 func main() {
 
-	// Create new table of type [shapex] for mysql
+	// Create new TableIO of type [shapex] for mysql
 	shapexTable, _ := NewTableIO[Shapex]("mysql", "root:Password123@tcp(127.0.01:3306)/ark")
-	shapexTable.DeleteTableIfExists()
-	//os.Exit(0)
+
+	// Create table in db
 	shapexTable.CreateTableIfNotExists()
 
 	shapexTable.Insert(Shapex{
@@ -50,5 +50,9 @@ func main() {
 		fmt.Printf("%d. Name:%s, Height:%d, Width:%d \n", i, j.Name, j.Dimensions.Height, j.Dimensions.Width)
 	}
 
+	// Delete Table in DB
+	shapexTable.DeleteTableIfExists()
+
+	// Close db connection
 	shapexTable.Close()
 }
