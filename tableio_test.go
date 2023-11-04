@@ -1,7 +1,8 @@
-package main
+package tableio
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/katasec/tableio/reflectx"
@@ -17,16 +18,29 @@ type Hello struct {
 
 func TestCreateTable(t *testing.T) {
 
+	// Get connection string for env
+	conn := os.Getenv("MYSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var MYSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
 	// Create New Table from struct definition
-	helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
+	helloTable, err := NewTableIO[Hello]("mysql", conn)
 	errx.PanicOnError(err)
 
-	helloTable.CreateTableIfNotExists()
+	helloTable.CreateTableIfNotExists(true)
 
 	// Insert data in to table
-	helloTable.Insert(Hello{Message: "Hi One !"})
-	helloTable.Insert(Hello{Message: "Hi Two !"})
-	helloTable.Insert(Hello{Message: "Hi Three !"})
+	helloTable.Insert(Hello{
+		Message:  "message",
+		Message1: "message1",
+		Message2: "message2",
+	})
+	helloTable.Insert(Hello{
+		Message:  "2message",
+		Message1: "2message1",
+		Message2: "2message2",
+	})
 
 	// Read Data
 	data := helloTable.All()
