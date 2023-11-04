@@ -1,6 +1,6 @@
 # Overview 
 
-`tableio` helps with quick proto-typing in persisting structs into a database. Currently only sqlite is supported.
+`tableio` helps with quick proto-typing in persisting structs into a database. Only tested with SQLite and Mysql
 
 ## Define a struct
 
@@ -18,6 +18,11 @@ The TableIO constructor `NewTableIO` creates a connection to your database and r
 
 ```go
 helloTable, err := NewTableIO[Hello]("sqlite3", "test.db")
+```
+For MySQL you would do:
+
+```go
+NewTableIO[Shapex]("mysql", "user:password@tcp(127.0.01:3306)/dbname")
 ```
 
 Note the database drivername and connection string are passed in the constructor.
