@@ -131,3 +131,29 @@ func GenSqlForFields(fields []FieldInfo) string {
 	return sb.String()
 
 }
+
+// GetDbStructFields Returns list of fields in a struct of type "T" that have
+// a "db" tag
+func GetStructFields[T any](tags ...string) []FieldInfo {
+	var fieldInfo []FieldInfo
+
+	// Instantiate Struct of type T to use for reflection
+	var myStruct T
+	myType := reflect.TypeOf(myStruct)
+
+	// Iterate through fields in the Struct
+	for i := 0; i < myType.NumField(); i++ {
+
+		// Get current field from struct
+		f := myType.Field(i)
+
+		// Add field name and type to list of fields
+		fieldInfo = append(fieldInfo, FieldInfo{
+			FieldName: f.Name,
+			FieldType: f.Type.Name(),
+		})
+
+	}
+
+	return fieldInfo
+}

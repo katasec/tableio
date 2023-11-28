@@ -104,7 +104,7 @@ func TestCreateTable(t *testing.T) {
 
 func TestGenSqlForFields(t *testing.T) {
 
-	fields := reflectx.GetStructFieldsX[Hello]()
+	fields := reflectx.GetDbStructFields[Hello]()
 
 	x := reflectx.GenSqlForFields(fields)
 
@@ -112,7 +112,12 @@ func TestGenSqlForFields(t *testing.T) {
 }
 
 func TestSelectList(t *testing.T) {
-	helloTable, _ := NewTableIO[Entity]("sqlite3", "test.db")
+	//helloTable, _ := NewTableIO[Entity]("sqlite3", "test.db")
 
-	fmt.Println("Fields: " + helloTable.selectList)
+	x := reflectx.GetStructFields[Entity]()
+
+	for i, field := range x {
+		fmt.Println(i, "Name:"+field.FieldName, "Type:"+field.FieldType)
+	}
+	//fmt.Println("Fields: " + helloTable.selectList)
 }
