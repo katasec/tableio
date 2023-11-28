@@ -15,10 +15,14 @@ import (
 )
 
 type TableIO[T any] struct {
-	DB          *sql.DB
-	tableName   string
-	dbFieldsAll string
-	dbFields    []reflectx.FieldInfo
+	DB        *sql.DB
+	tableName string
+
+	// This is a comma separated list of fields for the table used for select statements
+	selectList string
+
+	// dbFields is a list of fields in the struct that have a 'db' tag
+	dbFields []reflectx.FieldInfo
 }
 
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
@@ -34,22 +38,27 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 		dbFields:  reflectx.GetDbStructFields[T](),
 	}
 
-	// Construct select list for table
-	list := ""
-	for i, j := range tableio.dbFields {
-		list += j.FieldName
-		if i < len(tableio.dbFields)-1 {
-			list += ","
-		}
-	}
-	tableio.dbFieldsAll = list
+	// Initialize the 'select list' for table
+	tableio.selectList = tableio.getSelectList()
 
 	return tableio, nil
 }
 
+// getSelectList returns a comma separated list of fields for the table used for select statements
+func (me *TableIO[T]) getSelectList() string {
+	list := ""
+
+	for i, j := range me.dbFields {
+		list += j.FieldName
+		if i < len(me.dbFields)-1 {
+			list += ","
+		}
+	}
+	return list
+}
 func (me *TableIO[T]) Insert(data T) error {
 
-	sqlCmd := "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(data) + ")"
+	sqlCmd := "insert into " + me.tableName + "(" + me.selectList + ") values (" + reflectx.GetStructValues(data) + ")"
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
@@ -64,7 +73,7 @@ func (me *TableIO[T]) InsertMany(data []T) error {
 	// Gen Sql Command
 	sqlCmd := ""
 	for _, item := range data {
-		sqlCmd += "insert into " + me.tableName + "(" + me.dbFieldsAll + ") values (" + reflectx.GetStructValues(item) + "); \n"
+		sqlCmd += "insert into " + me.tableName + "(" + me.selectList + ") values (" + reflectx.GetStructValues(item) + "); \n"
 	}
 
 	// Run Insert
@@ -132,7 +141,7 @@ func (me *TableIO[T]) All() []T {
 	//var data T
 
 	// Construct select statement
-	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
+	sqlCmd := "select " + me.selectList + " from " + me.tableName
 	//fmt.Println(sqlCmd)
 
 	// Run Query
@@ -216,7 +225,7 @@ func (me *TableIO[T]) All() []T {
 func (me *TableIO[T]) All2() []T {
 
 	// Construct select statement
-	sqlCmd := "select " + me.dbFieldsAll + " from " + me.tableName
+	sqlCmd := "select " + me.selectList + " from " + me.tableName
 	//fmt.Println(sqlCmd)
 
 	// Run Query

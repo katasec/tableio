@@ -1,6 +1,7 @@
 package tableio
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -9,6 +10,21 @@ import (
 	"github.com/katasec/utils/errx"
 )
 
+type Entity struct {
+	Id      int
+	Name    string
+	Entity2 Entity2
+	Field1  string
+	Field2  string
+}
+
+type Entity2 struct {
+	Id     int
+	Name   string
+	Field1 string
+	Field2 string
+}
+
 // Create a test struct
 type Hello struct {
 	Message  string `db:"message"`
@@ -16,6 +32,22 @@ type Hello struct {
 	Message2 string `db:"message2"`
 }
 
+func TestStuff(t *testing.T) {
+	x := Entity{
+		Id:   1,
+		Name: "name",
+		Entity2: Entity2{
+			Id:     2,
+			Name:   "name2",
+			Field1: "field1",
+			Field2: "field2",
+		},
+		Field1: "field1",
+	}
+
+	xBytes, _ := json.Marshal(x)
+	fmt.Println(string(xBytes))
+}
 func TestCreateTable(t *testing.T) {
 
 	// Get connection string for env
@@ -80,7 +112,7 @@ func TestGenSqlForFields(t *testing.T) {
 }
 
 func TestSelectList(t *testing.T) {
-	helloTable, _ := NewTableIO[Hello]("sqlite3", "test.db")
+	helloTable, _ := NewTableIO[Entity]("sqlite3", "test.db")
 
-	fmt.Println(helloTable.dbFieldsAll)
+	fmt.Println("Fields: " + helloTable.selectList)
 }
