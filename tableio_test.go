@@ -86,22 +86,6 @@ func TestCreateTable(t *testing.T) {
 	helloTable.Close()
 }
 
-// func TestGetDbStructFieldsByTag(t *testing.T) {
-
-// 	// Create a test struct
-// 	type Hello struct {
-// 		Message0 string `db:"message0"`
-// 		Message1 string `db:"message1"`
-// 		Message2 string `db:"message2"`
-// 		Message3 string
-// 	}
-
-// 	y := reflectx.GetDbStructFields[Hello]()
-
-// 	fmt.Print("\nDb Select List: " + strings.Join(y, ", ") + "\n\n")
-
-// }
-
 func TestGenSqlForFields(t *testing.T) {
 
 	fields := reflectx.GetDbStructFields[Hello]()
@@ -120,4 +104,11 @@ func TestSelectList(t *testing.T) {
 		fmt.Println(i, "Name:"+field.FieldName, "Type:"+field.FieldType)
 	}
 	//fmt.Println("Fields: " + helloTable.selectList)
+}
+
+type AzureCloudspace struct{}
+
+func TestTableNaming(t *testing.T) {
+	name := reflectx.GetTableName[AzureCloudspace]()
+	fmt.Println(name)
 }

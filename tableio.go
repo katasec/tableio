@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -39,23 +37,11 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 	}
 
 	// Initialize the 'select list' for table
-	tableio.selectList = tableio.getSelectList()
+	tableio.selectList = tableio.genSelectList()
 
 	return tableio, nil
 }
 
-// getSelectList returns a comma separated list of fields for the table used for select statements
-func (me *TableIO[T]) getSelectList() string {
-	list := ""
-
-	for i, j := range me.dbFields {
-		list += j.FieldName
-		if i < len(me.dbFields)-1 {
-			list += ","
-		}
-	}
-	return list
-}
 func (me *TableIO[T]) Insert(data T) error {
 
 	sqlCmd := "insert into " + me.tableName + "(" + me.selectList + ") values (" + reflectx.GetStructValues(data) + ")"
@@ -221,101 +207,15 @@ func (me *TableIO[T]) All() []T {
 	return data
 }
 
-// All2 Reads all rows form the database via a "select * from <table>"
-func (me *TableIO[T]) All2() []T {
+// genSelectList returns a comma separated list of fields for the table used for select statements
+func (me *TableIO[T]) genSelectList() string {
+	list := ""
 
-	// Construct select statement
-	sqlCmd := "select " + me.selectList + " from " + me.tableName
-	//fmt.Println(sqlCmd)
-
-	// Run Query
-	rows, err := me.DB.Query(sqlCmd)
-	errx.PanicOnError(err)
-
-	// Get column types and count
-	columnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		errx.PanicOnError(err)
-	}
-	count := len(columnTypes)
-	finalRows := []interface{}{}
-
-	// Loop through rows
-	for rows.Next() {
-
-		// Create pointers to each column of appropriate type
-		scanArgs := make([]interface{}, count)
-		for i, v := range columnTypes {
-			switch v.DatabaseTypeName() {
-			case "VARCHAR", "TEXT", "UUID", "TIMESTAMP":
-				scanArgs[i] = new(sql.NullString)
-			case "BOOL":
-				scanArgs[i] = new(sql.NullBool)
-			case "INT4":
-				scanArgs[i] = new(sql.NullInt64)
-			default:
-				scanArgs[i] = new(sql.NullString)
-			}
+	for i, j := range me.dbFields {
+		list += j.FieldName
+		if i < len(me.dbFields)-1 {
+			list += ","
 		}
-
-		// Scan row into pointers
-		err := rows.Scan(scanArgs...)
-		errx.PanicOnError(err)
-
-		masterData := map[string]interface{}{}
-
-		// Use reflection to get count of fields in struct
-		var data T
-		dataType := reflect.TypeOf(data)
-		count := dataType.NumField()
-
-		// Loop through fields and create map of field name and type
-		for i := 0; i < count; i++ {
-			field := dataType.Field(i)
-
-			fieldName := field.Name
-			fieldType := field.Type
-
-			if z, ok := (scanArgs[i]).(*sql.NullBool); ok {
-				masterData[fieldName] = z.Bool
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullString); ok {
-				masterData[fieldName] = z.String
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt64); ok {
-				masterData[fieldName] = z.Int64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullFloat64); ok {
-				masterData[fieldName] = z.Float64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt32); ok {
-				masterData[fieldName] = z.Int32
-				continue
-			}
-
-			masterData[fieldName] = scanArgs[i] //reflect.New(fieldType)
-			if fieldType.String() != "string" {
-				masterData[fieldName], _ = strconv.Unquote(scanArgs[i].(string))
-			}
-
-		}
-
-		finalRows = append(finalRows, masterData)
 	}
-
-	z, err := json.Marshal(finalRows)
-	//fmt.Println(string(z))
-	errx.PanicOnError(err)
-
-	var data []T
-	json.Unmarshal(z, &data)
-	return data
+	return list
 }

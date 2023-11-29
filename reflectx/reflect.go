@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/gertd/go-pluralize"
+	"github.com/iancoleman/strcase"
 )
 
 type FieldInfo struct {
@@ -61,12 +64,18 @@ func GetTableName[T any]() string {
 		tableName = strings.Split(tableName, ".")[1]
 	}
 
-	// Add an S
-	tableName = strings.ToLower(tableName)
-	return tableName + "s"
+	// Pluralize the table name
+	pluralize := pluralize.NewClient()
+	tableName = pluralize.Plural(tableName)
+
+	// Convert to snake case
+	tableName = strcase.ToSnake(tableName)
+
+	return tableName
 }
 
-// GetStructValues Gets struct values
+// GetStructValues Gets struct values of the fields in a struct
+// used for the 'VALUES' clause in an SQL INSERT statement
 func GetStructValues[T any](data T) string {
 
 	var sb strings.Builder
@@ -134,7 +143,7 @@ func GenSqlForFields(fields []FieldInfo) string {
 
 // GetDbStructFields Returns list of fields in a struct of type "T" that have
 // a "db" tag
-func GetStructFields[T any](tags ...string) []FieldInfo {
+func GetStructFields[T any]() []FieldInfo {
 	var fieldInfo []FieldInfo
 
 	// Instantiate Struct of type T to use for reflection
@@ -156,4 +165,21 @@ func GetStructFields[T any](tags ...string) []FieldInfo {
 	}
 
 	return fieldInfo
+}
+
+func GetDbStuff[T any]() {
+	// Instantiate Struct of type T to use for reflection
+	var myStruct T
+	myType := reflect.TypeOf(myStruct)
+
+	// Iterate through fields in the Struct
+	for i := 0; i < myType.NumField(); i++ {
+
+		// Get current field from struct
+		f := myType.Field(i)
+
+		// Add field name and type to list of fields
+		fmt.Println(f.Name, f.Type.Name())
+
+	}
 }
