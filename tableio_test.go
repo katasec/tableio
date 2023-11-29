@@ -109,6 +109,6 @@ func TestSelectList(t *testing.T) {
 type AzureCloudspace struct{}
 
 func TestTableNaming(t *testing.T) {
-	name := reflectx.GetTableName[AzureCloudspace]()
-	fmt.Println(name)
+	fmt.Println(GetTableName[Entity]())
+	fmt.Println(GetTableName[AzureCloudspace]())
 }

@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
+	"github.com/gertd/go-pluralize"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/iancoleman/strcase"
 	"github.com/katasec/tableio/reflectx"
 	"github.com/katasec/utils/errx"
 	_ "github.com/mattn/go-sqlite3"
@@ -32,7 +35,7 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 
 	tableio := &TableIO[T]{
 		DB:        db,
-		tableName: reflectx.GetTableName[T](),
+		tableName: GetTableName[T](),
 		dbFields:  reflectx.GetDbStructFields[T](),
 	}
 
@@ -79,7 +82,7 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 
 	var sb strings.Builder
 
-	tableName := reflectx.GetTableName[T]()
+	tableName := GetTableName[T]()
 
 	// Start Create Table Command
 	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
@@ -107,7 +110,7 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 
 func (me *TableIO[T]) DeleteTableIfExists() {
 
-	tableName := reflectx.GetTableName[T]()
+	tableName := GetTableName[T]()
 
 	// Start Create Table Commands
 	sqlCmd := "DROP TABLE IF EXISTS " + tableName + ";"
@@ -218,4 +221,25 @@ func (me *TableIO[T]) genSelectList() string {
 		}
 	}
 	return list
+}
+
+func GetTableName[T any]() string {
+	var data []T
+
+	// Tablename is dervied from the name of the objects's Type
+	tableName := reflect.TypeOf(data).String()
+
+	// Remove package names from the resulting string
+	if strings.Contains(tableName, ".") {
+		tableName = strings.Split(tableName, ".")[1]
+	}
+
+	// Pluralize the table name
+	pluralize := pluralize.NewClient()
+	tableName = pluralize.Plural(tableName)
+
+	// Convert to snake case
+	tableName = strcase.ToSnake(tableName)
+
+	return tableName
 }

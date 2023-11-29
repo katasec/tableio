@@ -6,9 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-
-	"github.com/gertd/go-pluralize"
-	"github.com/iancoleman/strcase"
 )
 
 type FieldInfo struct {
@@ -51,27 +48,6 @@ func GetDbStructFields[T any](tags ...string) []FieldInfo {
 	}
 
 	return fieldInfo
-}
-
-func GetTableName[T any]() string {
-	var data []T
-
-	// Tablename is dervied from the name of the objects's Type
-	tableName := reflect.TypeOf(data).String()
-
-	// Remove package names from the resulting string
-	if strings.Contains(tableName, ".") {
-		tableName = strings.Split(tableName, ".")[1]
-	}
-
-	// Pluralize the table name
-	pluralize := pluralize.NewClient()
-	tableName = pluralize.Plural(tableName)
-
-	// Convert to snake case
-	tableName = strcase.ToSnake(tableName)
-
-	return tableName
 }
 
 // GetStructValues Gets struct values of the fields in a struct
