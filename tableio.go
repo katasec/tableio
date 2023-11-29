@@ -124,10 +124,19 @@ func GenTableName[T any]() string {
 }
 
 // Insert Inserts a single row into the table
-func (me *TableIO[T]) Insert(data T) error {
+func (me *TableIO[T]) Insert(data T, verbose ...bool) error {
+	var debug bool
+
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
 
 	sqlCmd := "insert into " + me.tableName + "(" + me.insertList + ") values (" + reflectx.GetStructValuesForInsert(data) + ")"
-	fmt.Println(sqlCmd)
+
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnError(err)
@@ -163,6 +172,7 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 
 	var sb strings.Builder
 
+	// Generate a table name to use for creating in the DB
 	tableName := GenTableName[T]()
 
 	// Start Create Table Command
@@ -183,9 +193,11 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	//Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
-	if err == nil {
+
+	if debug {
 		fmt.Println("Create table '" + me.tableName + "' successfully")
 	}
+
 	return nil
 }
 
@@ -206,10 +218,10 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 	// Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnError(err)
-	fmt.Println("Deleted table '" + me.tableName + "' successfully.")
 
 	// Print SQL if debug flag is set
 	if debug {
+		fmt.Println("Deleted table '" + me.tableName + "' successfully.")
 		fmt.Println(sqlCmd)
 	}
 }
@@ -220,12 +232,19 @@ func (me *TableIO[T]) Close() {
 }
 
 // All Returns all rows in the table
-func (me *TableIO[T]) All() []T {
-	//var data T
+func (me *TableIO[T]) All(verbose ...bool) []T {
+
+	var debug bool
+
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
 
 	// Construct select statement
 	sqlCmd := "select " + me.selectList + " from " + me.tableName
-	//fmt.Println(sqlCmd)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
 
 	// Run Query
 	rows, err := me.DB.Query(sqlCmd)
@@ -298,12 +317,13 @@ func (me *TableIO[T]) All() []T {
 	}
 
 	// Marshal final result to JSON
-	z, err := json.Marshal(finalRows)
+	jsonString, err := json.Marshal(finalRows)
+	fmt.Println(string(jsonString))
 	errx.PanicOnError(err)
 
 	// Unmarshal JSON to struct
 	var data []T
-	json.Unmarshal(z, &data)
+	json.Unmarshal(jsonString, &data)
 
 	// Return data of type T
 	return data

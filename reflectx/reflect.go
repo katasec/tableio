@@ -145,16 +145,16 @@ func GenSqlForFields(fields []FieldInfo, driverName string) string {
 			// Note ID fields definition varies by database
 			switch driverName {
 			case "sqlite3":
-				sql = "\tid INTEGER PRIMARY KEY AUTOINCREMENT"
+				sql = "\tID INTEGER PRIMARY KEY AUTOINCREMENT"
 			case "mysql":
-				sql = "\tid INT PRIMARY KEY AUTO_INCREMENT"
+				sql = "\tID INT PRIMARY KEY AUTO_INCREMENT"
 			case "postgres":
-				sql = "\tid SERIAL PRIMARY KEY"
+				sql = "\tID SERIAL PRIMARY KEY"
 			}
 			sb.WriteString(sql)
 		} else if (field.FieldName) == "Name" {
 			// Generate SQL for field based on field name for Name field
-			sql = "\tname VARCHAR(255) NOT NULL UNIQUE"
+			sql = "\tName VARCHAR(255) NOT NULL UNIQUE"
 			sb.WriteString(sql)
 		} else {
 			// Generate SQL for field based on field type
@@ -162,7 +162,7 @@ func GenSqlForFields(fields []FieldInfo, driverName string) string {
 			case "string":
 				sql = fmt.Sprintf("\t%s VARCHAR(255) NULL", field.FieldName)
 				sb.WriteString(sql)
-			case "int32":
+			case "int32", "int64", "int":
 				sql = fmt.Sprintf("\t%s INTEGER NULL", field.FieldName)
 				sb.WriteString(sql)
 			default:

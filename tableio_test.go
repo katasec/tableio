@@ -20,9 +20,9 @@ type Address struct {
 	State string
 }
 type Person struct {
-	ID      int64
-	Name    string
-	Age     int
+	ID      int64  `json:"id"`
+	Name    string `json:"name"`
+	Age     int    `json:"age"`
 	Address Address
 }
 
@@ -41,12 +41,19 @@ func TestCreateTableMySql(t *testing.T) {
 	peopleTable, err := NewTableIO[Person]("mysql", conn)
 	errx.PanicOnError(err)
 
+	ExecTableOperations(peopleTable)
+
+}
+
+func ExecTableOperations(table *TableIO[Person]) {
+
 	// Delete and Recreate Table
-	peopleTable.DeleteTableIfExists(true)
-	peopleTable.CreateTableIfNotExists(true)
+	table.DeleteTableIfExists(true)
+	table.CreateTableIfNotExists(true)
+	defer table.Close()
 
 	// Insert data in to table
-	peopleTable.Insert(Person{
+	table.Insert(Person{
 		Name: "John",
 		Age:  30,
 		Address: Address{
@@ -54,46 +61,25 @@ func TestCreateTableMySql(t *testing.T) {
 			State: "NY",
 		},
 	})
-	peopleTable.Insert(Person{
+	table.Insert(Person{
 		Name: "Ahmed",
 		Age:  45,
 		Address: Address{
-			City:  "Abu Dhabi",
-			State: "UAE",
+			City:  "Cairo",
+			State: "Cairo",
 		},
 	})
 
 	// Read Data
-	data := peopleTable.All()
-	for _, person := range data {
-		fmt.Println(person.Name)
+	data := table.All()
+	for i, person := range data {
+		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
 	}
+
 	// Delete table
-	//peopleTable.DeleteTableIfExists()
+	//table.DeleteTableIfExists()
 
-	// Close DB connection
-	peopleTable.Close()
 }
-
-//	func TestTable(table *TableIO[Person]) {
-//		// Insert data in to table
-//		table.Insert(Person{
-//			Name: "John",
-//			Age:  30,
-//			Address: Address{
-//				City:  "New York",
-//				State: "NY",
-//			},
-//		})
-//		table.Insert(Person{
-//			Name: "Ahmed",
-//			Age:  45,
-//			Address: Address{
-//				City:  "Abu Dhabi",
-//				State: "UAE",
-//			},
-//		})
-//	}
 func TestCreateTablePgSql(t *testing.T) {
 	// Get connection string for env
 	conn := os.Getenv("PGSQL_CONNECTION_STRING")
@@ -109,38 +95,7 @@ func TestCreateTablePgSql(t *testing.T) {
 	peopleTable, err := NewTableIO[Person]("postgres", conn)
 	errx.PanicOnError(err)
 
-	// Delete and Recreate Table
-	peopleTable.DeleteTableIfExists(true)
-	peopleTable.CreateTableIfNotExists(true)
-
-	// Insert data in to table
-	peopleTable.Insert(Person{
-		Name: "John",
-		Age:  30,
-		Address: Address{
-			City:  "New York",
-			State: "NY",
-		},
-	})
-	peopleTable.Insert(Person{
-		Name: "Ahmed",
-		Age:  45,
-		Address: Address{
-			City:  "Abu Dhabi",
-			State: "UAE",
-		},
-	})
-
-	// Read Data
-	data := peopleTable.All()
-	for _, person := range data {
-		fmt.Println(person.Name)
-	}
-	// Delete table
-	//peopleTable.DeleteTableIfExists()
-
-	// Close DB connection
-	peopleTable.Close()
+	ExecTableOperations(peopleTable)
 }
 
 // func TestGenSqlForFields(t *testing.T) {
