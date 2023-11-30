@@ -128,7 +128,7 @@ The following deletes the table:
 peopleTable.DeleteTableIfExists()
 ```
 
-## Close DB connections
+## Close DB connection
 
 Close the DB connection
 
