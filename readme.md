@@ -38,7 +38,7 @@ peopleTable, err := NewTableIO[Person]("postgres", "postgresql://user:password@1
 
 Note the database drivername and connection string are passed in the constructor.
 
-The fields in the type parameter are used to determine the structure of your database table. For e.g., in the above case, the fields in the `Address` and `Person` struct will generate the following SQL for table creation:
+The fields in of type(that is passed via the type parameter) are used to determine the structure of your database table. For e.g., in the above case `Person` was passed, as such the fields in the `Person` struct will generate the following SQL at table creation:
 
 
 ```sql
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS people (
 );
 ```
 
-Any complex type (i.e. not an int/string etc), is stored as a JSONB in the DB. It's automatically marshalled/unmarshalled on read/write
+Any complex type (i.e. not an int/string etc), is stored as a JSONB in the DB. For example, in the above case, `Address` is stored as a json object in that table. These are  transparently marshalled/unmarshalled on read/write.
 
 
 ## Create the table
