@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS people (
 );
 ```
 
-And complex type (i.e. not an int/string etc), is stored as a JSONB in the DB. It's automatically marshalled/unmarshalled on read/write
+Any complex type (i.e. not an int/string etc), is stored as a JSONB in the DB. It's automatically marshalled/unmarshalled on read/write
 
 
 ## Create the table
