@@ -67,7 +67,7 @@ func ExecTableOperations(table *TableIO[Person]) {
 
 	// Delete and Recreate Table
 	table.DeleteTableIfExists()
-	table.CreateTableIfNotExists()
+	table.CreateTableIfNotExists(true)
 	defer table.Close()
 
 	// Insert data in to table
@@ -79,14 +79,26 @@ func ExecTableOperations(table *TableIO[Person]) {
 			State: "NY",
 		},
 	})
-	table.Insert(Person{
-		Name: "Ahmed",
-		Age:  45,
-		Address: Address{
-			City:  "Cairo",
-			State: "Cairo",
+	table.InsertMany(
+		[]Person{
+			{
+				Name: "Ahmed",
+				Age:  45,
+				Address: Address{
+					City:  "Cairo",
+					State: "Cairo",
+				},
+			},
+			{
+				Name: "Jack",
+				Age:  6,
+				Address: Address{
+					City:  "Terra Haute",
+					State: "Indiana",
+				},
+			},
 		},
-	})
+	)
 
 	// Read Data
 	data := table.All()
@@ -96,4 +108,7 @@ func ExecTableOperations(table *TableIO[Person]) {
 
 	// Delete table
 	table.DeleteTableIfExists()
+
+	// Close DB Connection
+	table.Close()
 }
