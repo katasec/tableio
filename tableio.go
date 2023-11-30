@@ -80,7 +80,7 @@ func Validate[T any]() bool {
 	idField := false
 	nameField := false
 	for _, field := range fields {
-		if field.FieldName == "ID" && field.FieldType == "int64" {
+		if field.FieldName == "ID" && (field.FieldType == "int64" || field.FieldType == "int32" || field.FieldType == "int") {
 			idField = true
 		}
 		if field.FieldName == "Name" && field.FieldType == "string" {
@@ -90,7 +90,7 @@ func Validate[T any]() bool {
 
 	// Output error if struct does not have an 'ID' and 'Name' field
 	if !idField {
-		fmt.Printf("struct '%s' does not have an 'ID' field of type int64\n", typeName)
+		fmt.Printf("struct '%s' does not have an 'ID' field of type int64/int32/int\n", typeName)
 	}
 	if !nameField {
 		fmt.Printf("struct '%s' does not have a 'Name' field of type string\n", typeName)
@@ -214,7 +214,9 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 
 	// Start Create Table Commands
 	sqlCmd := "DROP TABLE IF EXISTS " + tableName + ";"
-
+	if debug {
+		fmt.Println(sqlCmd)
+	}
 	// Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
 	errx.PanicOnError(err)
@@ -222,7 +224,6 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 	// Print SQL if debug flag is set
 	if debug {
 		fmt.Println("Deleted table '" + me.tableName + "' successfully.")
-		fmt.Println(sqlCmd)
 	}
 }
 
@@ -271,6 +272,10 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 				scanArgs[i] = new(sql.NullBool)
 			case "INT4":
 				scanArgs[i] = new(sql.NullInt64)
+			case "JSON":
+				scanArgs[i] = new(sql.NullString)
+			case "JSONB":
+				scanArgs[i] = new(sql.NullString)
 			default:
 				scanArgs[i] = new(sql.NullString)
 			}
@@ -309,6 +314,130 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 				continue
 			}
 
+			if z, ok := (scanArgs[i]).(*sql.NullByte); ok {
+				masterData[v.Name()] = z.Byte
+				continue
+			}
+
+			masterData[v.Name()] = scanArgs[i]
+		}
+
+		// Append row to final result
+		finalRows = append(finalRows, masterData)
+	}
+
+	// Marshal final result to JSON
+	jsonBytes, err := json.MarshalIndent(finalRows, "", "  ")
+
+	jsonString := string(jsonBytes)
+	jsonString = UnescapeJson(jsonString)
+	errx.PanicOnError(err)
+
+	var data []T
+
+	json.Unmarshal([]byte(jsonString), &data)
+	return data
+
+}
+
+func UnescapeJson(jsonString string) string {
+	jsonString = strings.Replace(jsonString, `\"`, `"`, -1)
+	jsonString = strings.Replace(jsonString, `"{`, `{`, -1)
+	jsonString = strings.Replace(jsonString, `}"`, `}`, -1)
+	return jsonString
+}
+
+// All Returns all rows in the table
+func (me *TableIO[T]) All2(verbose ...bool) []T {
+
+	var debug bool
+
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
+
+	// Construct select statement
+	sqlCmd := "select " + me.selectList + " from " + me.tableName
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	// Run Query
+	rows, err := me.DB.Query(sqlCmd)
+	errx.PanicOnError(err)
+
+	// Get column types and count
+	columnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		errx.PanicOnError(err)
+	}
+	count := len(columnTypes)
+	finalRows := []interface{}{}
+
+	// Loop through rows
+	for rows.Next() {
+
+		// Create pointers to each column of appropriate type
+		scanArgs := make([]interface{}, count)
+		for i, v := range columnTypes {
+			switch v.DatabaseTypeName() {
+			case "VARCHAR", "TEXT", "UUID", "TIMESTAMP":
+				scanArgs[i] = new(sql.NullString)
+			case "BOOL":
+				scanArgs[i] = new(sql.NullBool)
+			case "INT4":
+				scanArgs[i] = new(sql.NullInt64)
+			case "JSON":
+				scanArgs[i] = new(sql.NullString)
+			default:
+				scanArgs[i] = new(sql.NullString)
+			}
+		}
+
+		// Scan row into pointers
+		err := rows.Scan(scanArgs...)
+		errx.PanicOnError(err)
+
+		// Create map of column names and values of appropriate type
+		masterData := map[string]interface{}{}
+		fmt.Println("Before loop")
+		for i, v := range columnTypes {
+
+			if z, ok := (scanArgs[i]).(*sql.NullBool); ok {
+				masterData[v.Name()] = z.Bool
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullString); ok {
+				masterData[v.Name()] = z.String
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullInt64); ok {
+				masterData[v.Name()] = z.Int64
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullFloat64); ok {
+				masterData[v.Name()] = z.Float64
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullInt32); ok {
+				masterData[v.Name()] = z.Int32
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullByte); ok {
+				masterData[v.Name()] = z.Byte
+				continue
+			}
+
+			if z, ok := (scanArgs[i]).(*sql.NullByte); ok {
+				masterData[v.Name()] = z.Byte
+				continue
+			}
+
 			masterData[v.Name()] = scanArgs[i]
 		}
 
@@ -324,7 +453,7 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 	// Unmarshal JSON to struct
 	var data []T
 	json.Unmarshal(jsonString, &data)
-
+	fmt.Println("Len was:", len(data))
 	// Return data of type T
 	return data
 }

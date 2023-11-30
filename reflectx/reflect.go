@@ -166,7 +166,7 @@ func GenSqlForFields(fields []FieldInfo, driverName string) string {
 				sql = fmt.Sprintf("\t%s INTEGER NULL", field.FieldName)
 				sb.WriteString(sql)
 			default:
-				sql = fmt.Sprintf("\t%s TEXT NULL", field.FieldName)
+				sql = fmt.Sprintf("\t%s JSONB NULL", field.FieldName)
 				sb.WriteString(sql)
 			}
 		}
