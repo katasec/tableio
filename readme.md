@@ -67,7 +67,7 @@ To insert data, call the insert method passing in your struct
 - Single Row Insert
 
 ```go
-	table.Insert(Person{
+	peopleTable.Insert(Person{
 		Name: "John",
 		Age:  30,
 		Address: Address{
@@ -78,7 +78,7 @@ To insert data, call the insert method passing in your struct
 ```
 - Multiple Row Insert
 ```go
-	table.InsertMany(
+	peopleTable.InsertMany(
 		[]Person{
 			{
 				Name: "Ahmed",
@@ -108,7 +108,7 @@ You data is now saved in the DB !
 Call the `All()` method to retrieve all the data:
 
 ```go
-	data := table.All()
+	data := peopleTable.All()
 	for i, person := range data {
 		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
 	}
@@ -118,7 +118,7 @@ Call the `All()` method to retrieve all the data:
 The following deletes the table:
 
 ```go
-table.DeleteTableIfExists()
+peopleTable.DeleteTableIfExists()
 ```
 
 ## Close DB connections
@@ -127,5 +127,5 @@ Close the DB connection
 
 ```go
 // Close DB connection
-table.Close()
+peopleTable.Close()
 ```
