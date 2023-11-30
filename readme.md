@@ -19,7 +19,7 @@ type Person struct {
 }
 ```
 
-Not in this example we'll attempt to store a `Person` in the database. The struct you want to persist in the DB must have a `ID` and `Name` field.
+Note in this example we'll attempt to store a `Person` in the database. The struct you want to persist in the DB must have a `ID` and `Name` field.
 
 ## Connect to your DB
 
