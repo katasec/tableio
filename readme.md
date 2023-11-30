@@ -114,6 +114,13 @@ Call the `All()` method to retrieve all the data:
 	}
 ```
 
+Output:
+```
+1. ID:1 Name:John Age:30 City:New York
+2. ID:2 Name:Ahmed Age:45 City:Cairo
+3. ID:3 Name:Jack Age:6 City:Terra Haute
+
+```
 ## Delete Table
 The following deletes the table:
 
