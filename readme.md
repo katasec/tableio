@@ -2,9 +2,9 @@
 
 `tableio` helps with quick proto-typing in persisting structs into a database. Only tested with Mysql and PostgreSQL
 
-## Define a struct
+## Define your structs
 
-Create a structs to represent the data you want to persist:
+Create structs to represent the data you want to persist:
 
 ```go
 type Address struct {
@@ -18,6 +18,8 @@ type Person struct {
 	Address Address
 }
 ```
+
+Not in this example we'll attempt to store a `Person` in the database. The struct you want to persist in the DB must have a `ID` and `Name` field.
 
 ## Connect to your DB
 
