@@ -3,6 +3,7 @@ package tableio
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -18,9 +19,7 @@ import (
 
 	// Internal libs
 	"github.com/katasec/tableio/reflectx"
-
 	// Other libs
-	"github.com/katasec/utils/errx"
 )
 
 type TableIO[T any] struct {
@@ -139,10 +138,7 @@ func (me *TableIO[T]) Insert(data T, verbose ...bool) error {
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
-	errx.PanicOnError(err)
-
-	// return data
-	return nil
+	return err
 }
 
 // InsertMany Inserts multiple rows into the table
@@ -156,10 +152,7 @@ func (me *TableIO[T]) InsertMany(data []T) error {
 
 	// Run Insert
 	_, err := me.DB.Exec(sqlCmd)
-	errx.PanicOnError(err)
-
-	// return data
-	return nil
+	return err
 }
 
 // CreateTable Creates a table in the DB for the struct if it does not exist
@@ -192,17 +185,19 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 
 	//Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
-	errx.PanicOnErrorf(err, "Error creating table %s", tableName)
-
-	if debug {
-		fmt.Println("Create table '" + me.tableName + "' successfully")
+	if err != nil {
+		message := fmt.Sprintf("Error creating table %s: %s", tableName, err.Error())
+		return errors.New(message)
+	} else {
+		if debug {
+			fmt.Println("Create table '" + me.tableName + "' successfully")
+		}
+		return nil
 	}
-
-	return nil
 }
 
 // DeleteTableIfExists Deletes a table in the DB for the struct if it exists
-func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
+func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) error {
 
 	// Get verbose flag
 	var debug bool
@@ -219,11 +214,14 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 	}
 	// Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
-	errx.PanicOnError(err)
-
-	// Print SQL if debug flag is set
-	if debug {
-		fmt.Println("Deleted table '" + me.tableName + "' successfully.")
+	if err != nil {
+		message := fmt.Sprintf("Error creating table %s: %s", tableName, err.Error())
+		return errors.New(message)
+	} else {
+		if debug {
+			fmt.Println("Deleted table '" + me.tableName + "' successfully.")
+		}
+		return nil
 	}
 }
 
@@ -233,7 +231,7 @@ func (me *TableIO[T]) Close() {
 }
 
 // All Returns all rows in the table
-func (me *TableIO[T]) All(verbose ...bool) []T {
+func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
 
 	var debug bool
 
@@ -249,12 +247,14 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 
 	// Run Query
 	rows, err := me.DB.Query(sqlCmd)
-	errx.PanicOnError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// Get column types and count
 	columnTypes, err := rows.ColumnTypes()
 	if err != nil {
-		errx.PanicOnError(err)
+		return nil, err
 	}
 	count := len(columnTypes)
 	finalRows := []interface{}{}
@@ -283,7 +283,9 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 
 		// Scan row into pointers
 		err := rows.Scan(scanArgs...)
-		errx.PanicOnError(err)
+		if err != nil {
+			return nil, err
+		}
 
 		// Create map of column names and values of appropriate type
 		masterData := map[string]interface{}{}
@@ -328,15 +330,16 @@ func (me *TableIO[T]) All(verbose ...bool) []T {
 
 	// Marshal final result to JSON
 	jsonBytes, err := json.MarshalIndent(finalRows, "", "  ")
-
+	if err != nil {
+		return nil, err
+	}
 	jsonString := string(jsonBytes)
 	jsonString = UnescapeJson(jsonString)
-	errx.PanicOnError(err)
 
 	var data []T
 
 	json.Unmarshal([]byte(jsonString), &data)
-	return data
+	return data, nil
 
 }
 

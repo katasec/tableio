@@ -101,7 +101,7 @@ func ExecTableOperations(table *TableIO[Person]) {
 	)
 
 	// Read Data
-	data := table.All()
+	data, _ := table.All()
 	for i, person := range data {
 		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
 	}
