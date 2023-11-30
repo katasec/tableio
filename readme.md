@@ -23,17 +23,17 @@ Note in this example we'll attempt to store a `Person` in the database. The stru
 
 ## Connect to your DB
 
-The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Specify your struct's type as a *type parameter*, for e.g., the below example passes `[hello]` as a type parameter:
+The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Specify your struct's type as a *type parameter*, for e.g., the below example passes `[Person]` as a type parameter:
 
 ### MySQL:
 
 ```go
-peopleTable, err := NewTableIO[Hello]("mysql", "user:password@tcp(127.0.01:3306)/mydb")
+peopleTable, err := NewTableIO[Person]("mysql", "user:password@tcp(127.0.01:3306)/mydb")
 ```
 
 ### PostgreSQL
 ```go
-peopleTable, err := NewTableIO[Shapex]("postgres", "postgresql://user:password@127.0.01/ark?sslmode=disable")
+peopleTable, err := NewTableIO[Person]("postgres", "postgresql://user:password@127.0.01/ark?sslmode=disable")
 ```
 
 Note the database drivername and connection string are passed in the constructor.
