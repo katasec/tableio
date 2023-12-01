@@ -53,17 +53,33 @@ func TestCreateTablePgSql(t *testing.T) {
 	//	Create peopleTable struct from struct definition
 	//	Provide DB connection string and driver name
 	peopleTable, err := NewTableIO[Person]("postgres", conn)
+
+	//CreateTable[Person]("postgres", conn)
 	errx.PanicOnError(err)
 
 	ExecTableOperations(peopleTable)
 }
 
+// func CreateTable[T any](driverName string, datsourceName string) *TableIO[T] {
+// 	// Get connection string for env
+// 	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+// 	if conn == "" {
+// 		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+// 		os.Exit(1)
+// 	}
+
+// 	//	Create peopleTable struct from struct definition
+// 	//	Provide DB connection string and driver name
+// 	table, err := NewTableIO[T]("postgres", conn)
+// 	errx.PanicOnError(err)
+
+//		return table
+//	}
 func ExecTableOperations(table *TableIO[Person]) {
 
 	// Delete and Recreate Table
 	table.DeleteTableIfExists()
 	table.CreateTableIfNotExists()
-	defer table.Close()
 
 	// Insert data in to table
 	InsertOne(table)
@@ -72,7 +88,7 @@ func ExecTableOperations(table *TableIO[Person]) {
 	InsertMany(table)
 
 	// Read Data
-	data, _ := table.All()
+	data, _ := table.All(true)
 	for i, person := range data {
 		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
 	}

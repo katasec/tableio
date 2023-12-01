@@ -51,6 +51,12 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 		return nil, err
 	}
 
+	err = db.Ping()
+	if err != nil {
+		message := fmt.Sprintf("Error connecting to DB: %s", err.Error())
+		return nil, errors.New(message)
+	}
+
 	// Create TableIO struct with a connection to the DB
 	tableio := &TableIO[T]{
 		DB:         db,
@@ -319,17 +325,18 @@ func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
 		return nil, err
 	}
 
-	// Get column types and count
+	// Get column types and count from rows
 	dbColumnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
 
+	// Create array of pointers for each column of appropriate type
+	dest := me.initializeScanDest(dbColumnTypes)
+
 	// Loop through rows
 	allRows := []interface{}{} // This will contain the rows returned from the DB
 	for rows.Next() {
-		// Create array of pointers for each column of appropriate type
-		dest := me.initializeScanDest(dbColumnTypes)
 
 		// Scan row into dest
 		err := rows.Scan(dest...)
