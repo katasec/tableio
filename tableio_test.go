@@ -14,7 +14,6 @@ import (
 )
 
 // Create a test struct
-
 type Address struct {
 	City  string
 	State string
@@ -71,34 +70,35 @@ func ExecTableOperations(table *TableIO[Person]) {
 	defer table.Close()
 
 	// Insert data in to table
-	table.Insert(Person{
+	person := Person{
 		Name: "John",
 		Age:  30,
 		Address: Address{
 			City:  "New York",
 			State: "NY",
 		},
-	})
-	table.InsertMany(
-		[]Person{
-			{
-				Name: "Ahmed",
-				Age:  45,
-				Address: Address{
-					City:  "Cairo",
-					State: "Cairo",
-				},
-			},
-			{
-				Name: "Jack",
-				Age:  6,
-				Address: Address{
-					City:  "Terra Haute",
-					State: "Indiana",
-				},
+	}
+	table.Insert(person)
+
+	people := []Person{
+		{
+			Name: "Ahmed",
+			Age:  45,
+			Address: Address{
+				City:  "Cairo",
+				State: "Cairo",
 			},
 		},
-	)
+		{
+			Name: "Jack",
+			Age:  6,
+			Address: Address{
+				City:  "Terra Haute",
+				State: "Indiana",
+			},
+		},
+	}
+	table.InsertMany(people)
 
 	// Read Data
 	data, _ := table.All()

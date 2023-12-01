@@ -67,37 +67,38 @@ To insert data, call the insert method passing in your struct
 - Single Row Insert
 
 ```go
-	peopleTable.Insert(Person{
+	// Insert data in to table
+	person := Person{
 		Name: "John",
 		Age:  30,
 		Address: Address{
 			City:  "New York",
 			State: "NY",
 		},
-	})
+	}
+	table.Insert(person)
 ```
 - Multiple Row Insert
 ```go
-	peopleTable.InsertMany(
-		[]Person{
-			{
-				Name: "Ahmed",
-				Age:  45,
-				Address: Address{
-					City:  "Cairo",
-					State: "Cairo",
-				},
-			},
-			{
-				Name: "Jack",
-				Age:  6,
-				Address: Address{
-					City:  "Terra Haute",
-					State: "Indiana",
-				},
+	people := []Person{
+		{
+			Name: "Ahmed",
+			Age:  45,
+			Address: Address{
+				City:  "Cairo",
+				State: "Cairo",
 			},
 		},
-	)
+		{
+			Name: "Jack",
+			Age:  6,
+			Address: Address{
+				City:  "Terra Haute",
+				State: "Indiana",
+			},
+		},
+	}
+	table.InsertMany(people)
 ```
 
 You data is now saved in the DB !
