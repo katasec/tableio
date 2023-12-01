@@ -230,11 +230,79 @@ func (me *TableIO[T]) Close() {
 	me.DB.Close()
 }
 
+// initializeScanDest Creates an array items for each column in a DB row with the appropriate column type.
+// This will be used to store the incoming data from the DB row
+func (me *TableIO[T]) initializeScanDest(dbColumnTypes []*sql.ColumnType) []any {
+	count := len(dbColumnTypes)
+
+	dest := make([]any, count)
+	for i, v := range dbColumnTypes {
+		switch v.DatabaseTypeName() {
+		case "VARCHAR", "TEXT", "UUID", "TIMESTAMP":
+			dest[i] = new(sql.NullString)
+		case "BOOL":
+			dest[i] = new(sql.NullBool)
+		case "INT4":
+			dest[i] = new(sql.NullInt64)
+		case "JSON":
+			dest[i] = new(sql.NullString)
+		case "JSONB":
+			dest[i] = new(sql.NullString)
+		default:
+			dest[i] = new(sql.NullString)
+		}
+	}
+
+	return dest
+}
+
+// castColumnTypes Casts the values in the dest array to the appropriate type and stores them in the currentRowData map
+func (me *TableIO[T]) castColumnTypes(dest []any, dbColumnTypes []*sql.ColumnType) map[string]any {
+	//currentRowData := map[string]interface{}{}
+	currentRowData := map[string]any{}
+	for i, v := range dbColumnTypes {
+
+		if z, ok := (dest[i]).(*sql.NullBool); ok {
+			currentRowData[v.Name()] = z.Bool
+			continue
+		}
+
+		if z, ok := (dest[i]).(*sql.NullString); ok {
+			currentRowData[v.Name()] = z.String
+			continue
+		}
+
+		if z, ok := (dest[i]).(*sql.NullInt64); ok {
+			currentRowData[v.Name()] = z.Int64
+			continue
+		}
+
+		if z, ok := (dest[i]).(*sql.NullFloat64); ok {
+			currentRowData[v.Name()] = z.Float64
+			continue
+		}
+
+		if z, ok := (dest[i]).(*sql.NullInt32); ok {
+			currentRowData[v.Name()] = z.Int32
+			continue
+		}
+
+		if z, ok := (dest[i]).(*sql.NullByte); ok {
+			currentRowData[v.Name()] = z.Byte
+			continue
+		}
+
+		currentRowData[v.Name()] = dest[i]
+	}
+
+	return currentRowData
+}
+
 // All Returns all rows in the table
 func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
 
+	// Configure verbose flag
 	var debug bool
-
 	if len(verbose) > 0 {
 		debug = verbose[0]
 	}
@@ -252,101 +320,65 @@ func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
 	}
 
 	// Get column types and count
-	columnTypes, err := rows.ColumnTypes()
+	dbColumnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err
 	}
-	count := len(columnTypes)
-	finalRows := []interface{}{}
 
 	// Loop through rows
+	allRows := []interface{}{} // This will contain the rows returned from the DB
 	for rows.Next() {
+		// Create array of pointers for each column of appropriate type
+		dest := me.initializeScanDest(dbColumnTypes)
 
-		// Create pointers to each column of appropriate type
-		scanArgs := make([]interface{}, count)
-		for i, v := range columnTypes {
-			switch v.DatabaseTypeName() {
-			case "VARCHAR", "TEXT", "UUID", "TIMESTAMP":
-				scanArgs[i] = new(sql.NullString)
-			case "BOOL":
-				scanArgs[i] = new(sql.NullBool)
-			case "INT4":
-				scanArgs[i] = new(sql.NullInt64)
-			case "JSON":
-				scanArgs[i] = new(sql.NullString)
-			case "JSONB":
-				scanArgs[i] = new(sql.NullString)
-			default:
-				scanArgs[i] = new(sql.NullString)
-			}
-		}
-
-		// Scan row into pointers
-		err := rows.Scan(scanArgs...)
+		// Scan row into dest
+		err := rows.Scan(dest...)
 		if err != nil {
 			return nil, err
 		}
 
-		// Create map of column names and values of appropriate type
-		masterData := map[string]interface{}{}
-		for i, v := range columnTypes {
+		// Dest is a []interface{}. Casr the items in the array to the appropriate type
+		// and store them in the map row
+		row := me.castColumnTypes(dest, dbColumnTypes)
 
-			if z, ok := (scanArgs[i]).(*sql.NullBool); ok {
-				masterData[v.Name()] = z.Bool
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullString); ok {
-				masterData[v.Name()] = z.String
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt64); ok {
-				masterData[v.Name()] = z.Int64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullFloat64); ok {
-				masterData[v.Name()] = z.Float64
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullInt32); ok {
-				masterData[v.Name()] = z.Int32
-				continue
-			}
-
-			if z, ok := (scanArgs[i]).(*sql.NullByte); ok {
-				masterData[v.Name()] = z.Byte
-				continue
-			}
-
-			masterData[v.Name()] = scanArgs[i]
-		}
-
-		// Append row to final result
-		finalRows = append(finalRows, masterData)
+		// Append current row to final result
+		allRows = append(allRows, row)
 	}
 
 	// Marshal final result to JSON
-	jsonBytes, err := json.MarshalIndent(finalRows, "", "  ")
+	jsonBytes, err := json.MarshalIndent(allRows, "", "  ")
 	if err != nil {
 		return nil, err
 	}
+
+	// For some reason the jsonBytes needs to be converted to a string and then back to bytes
+	// to cast it to a []T
+
+	// Convert jsonBytes to string
 	jsonString := string(jsonBytes)
+
+	// The resulting JSON string has escaped quotes and curly braces. Unescape them
 	jsonString = UnescapeJson(jsonString)
 
+	// Convert jsonString to []T
 	var data []T
-
 	json.Unmarshal([]byte(jsonString), &data)
+
+	// Return data
 	return data, nil
 
 }
 
+// UnescapeJson Unescapes a JSON string
 func UnescapeJson(jsonString string) string {
+
+	// Fix escaped quotes
 	jsonString = strings.Replace(jsonString, `\"`, `"`, -1)
+
+	// Fix escaped curly braces
 	jsonString = strings.Replace(jsonString, `"{`, `{`, -1)
 	jsonString = strings.Replace(jsonString, `}"`, `}`, -1)
+
 	return jsonString
 }
 

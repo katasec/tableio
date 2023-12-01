@@ -26,6 +26,7 @@ type Person struct {
 }
 
 func TestCreateTableMySql(t *testing.T) {
+	fmt.Println("Testing MySql")
 	// Get connection string for env
 	conn := os.Getenv("MYSQL_CONNECTION_STRING")
 	if conn == "" {
@@ -33,15 +34,12 @@ func TestCreateTableMySql(t *testing.T) {
 		os.Exit(1)
 	}
 
-	/*
-		Create peopleTable struct from struct definition
-		Provide DB connection string and driver name
-	*/
+	//	Create peopleTable struct from struct definition
+	//	Provide DB connection string and driver name
 	peopleTable, err := NewTableIO[Person]("mysql", conn)
 	errx.PanicOnError(err)
 
 	ExecTableOperations(peopleTable)
-
 }
 
 func TestCreateTablePgSql(t *testing.T) {
@@ -52,10 +50,8 @@ func TestCreateTablePgSql(t *testing.T) {
 		os.Exit(1)
 	}
 
-	/*
-		Create peopleTable struct from struct definition
-		Provide DB connection string and driver name
-	*/
+	//	Create peopleTable struct from struct definition
+	//	Provide DB connection string and driver name
 	peopleTable, err := NewTableIO[Person]("postgres", conn)
 	errx.PanicOnError(err)
 
@@ -66,10 +62,29 @@ func ExecTableOperations(table *TableIO[Person]) {
 
 	// Delete and Recreate Table
 	table.DeleteTableIfExists()
-	table.CreateTableIfNotExists(true)
+	table.CreateTableIfNotExists()
 	defer table.Close()
 
 	// Insert data in to table
+	InsertOne(table)
+
+	// Insert many
+	InsertMany(table)
+
+	// Read Data
+	data, _ := table.All()
+	for i, person := range data {
+		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
+	}
+
+	// Delete table
+	//table.DeleteTableIfExists()
+
+	// Close DB Connection
+	table.Close()
+}
+
+func InsertOne(table *TableIO[Person]) {
 	person := Person{
 		Name: "John",
 		Age:  30,
@@ -79,7 +94,9 @@ func ExecTableOperations(table *TableIO[Person]) {
 		},
 	}
 	table.Insert(person)
+}
 
+func InsertMany(table *TableIO[Person]) {
 	people := []Person{
 		{
 			Name: "Ahmed",
@@ -99,16 +116,4 @@ func ExecTableOperations(table *TableIO[Person]) {
 		},
 	}
 	table.InsertMany(people)
-
-	// Read Data
-	data, _ := table.All()
-	for i, person := range data {
-		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
-	}
-
-	// Delete table
-	table.DeleteTableIfExists()
-
-	// Close DB Connection
-	table.Close()
 }
