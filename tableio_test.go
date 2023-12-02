@@ -62,9 +62,8 @@ func TestPgSqlReadByName(t *testing.T) {
 	result, err := peopleTable.ByName("John")
 	errx.PanicOnError(err)
 
-	for _, person := range result {
-		fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
-	}
+	person := result[0]
+	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
 }
 
 func TestPgSqlReadById(t *testing.T) {
@@ -85,9 +84,8 @@ func TestPgSqlReadById(t *testing.T) {
 	result, err := peopleTable.ById(2)
 	errx.PanicOnError(err)
 
-	for _, person := range result {
-		fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
-	}
+	person := result[0]
+	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
 }
 
 func TestCreateTableMySql(t *testing.T) {

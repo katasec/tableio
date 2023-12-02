@@ -104,9 +104,9 @@ To insert data, call the insert method passing in your struct
 You data is now saved in the DB !
 
 
-## Read the data 
+## Read All data 
 
-Call the `All()` method to retrieve all the data:
+Call the `All()` func to retrieve all the data:
 
 ```go
 	data,_ := peopleTable.All()
@@ -122,6 +122,31 @@ Output:
 3. ID:3 Name:Jack Age:6 City:Terra Haute
 
 ```
+
+## Query by Id
+
+Call the `ById()` func to retrieve record with the given Id
+```go
+
+	result, _ := peopleTable.ById(2)
+	person := result[0]
+	
+	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+
+```
+
+## Query by Name
+
+Call the `ByName()` func to retrieve record with the given Id
+```go
+	result, _ := peopleTable.ByName("John")
+	person := result[0]
+	
+	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+
+```
+
+
 ## Delete Table
 The following deletes the table:
 
