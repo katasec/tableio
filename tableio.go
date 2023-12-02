@@ -327,7 +327,7 @@ func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnTyp
 	}
 	defer rows.Close()
 
-	// Create array of pointers for each column of appropriate type
+	// Create an empty array of pointers for each column of appropriate type
 	dest := me.initializeScanDest(dbColumnTypes)
 
 	// Loop through rows
@@ -340,6 +340,7 @@ func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnTyp
 
 		// Cast items in the array to the appropriate type and store them in the map row
 		row := me.castColumnTypes(dest, dbColumnTypes)
+
 		// Append current row to final result
 		allRows = append(allRows, row)
 	}
@@ -350,13 +351,15 @@ func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnTyp
 		return nil, err
 	}
 
-	// Convert jsonBytes to string
+	// Convert jsonBytes to string. For some reason the jsonBytes
+	// needs to be converted to a string and then back to bytes
+	// vs. directly casting it to a []T
 	jsonString := string(jsonBytes)
 
 	// The resulting JSON string has escaped quotes and curly braces. Unescape them
 	jsonString = unescapeJson(jsonString)
 
-	// Convert jsonString to []T
+	// Convert jsonString to bytes and unmarshall to []T
 	var data []T
 	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
 		return nil, err
@@ -365,77 +368,6 @@ func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnTyp
 	// Return data
 	return data, nil
 }
-
-// All Returns all rows in the table
-// func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
-
-// 	// Configure verbose flag
-// 	var debug bool
-// 	if len(verbose) > 0 {
-// 		debug = verbose[0]
-// 	}
-
-// 	// Construct select statement
-// 	sqlCmd := "select " + me.selectList + " from " + me.tableName
-// 	if debug {
-// 		fmt.Println(sqlCmd)
-// 	}
-
-// 	// Run Query
-// 	rows, err := me.DB.Query(sqlCmd)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Get column types and count from rows
-// 	dbColumnTypes, err := rows.ColumnTypes()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// Create array of pointers for each column of appropriate type
-// 	dest := me.initializeScanDest(dbColumnTypes)
-
-// 	// Loop through rows
-// 	allRows := []interface{}{} // This will contain the rows returned from the DB
-// 	for rows.Next() {
-
-// 		// Scan row into dest
-// 		err := rows.Scan(dest...)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		// Dest is a []interface{}. Casr the items in the array to the appropriate type
-// 		// and store them in the map row
-// 		row := me.castColumnTypes(dest, dbColumnTypes)
-
-// 		// Append current row to final result
-// 		allRows = append(allRows, row)
-// 	}
-
-// 	// Marshal final result to JSON
-// 	jsonBytes, err := json.MarshalIndent(allRows, "", "  ")
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// For some reason the jsonBytes needs to be converted to a string and then back to bytes
-// 	// to cast it to a []T
-
-// 	// Convert jsonBytes to string
-// 	jsonString := string(jsonBytes)
-
-// 	// The resulting JSON string has escaped quotes and curly braces. Unescape them
-// 	jsonString = unescapeJson(jsonString)
-
-// 	// Convert jsonString to []T
-// 	var data []T
-// 	json.Unmarshal([]byte(jsonString), &data)
-
-// 	// Return data
-// 	return data, nil
-// }
 
 // All Returns all rows in the table
 func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
@@ -495,7 +427,7 @@ func unescapeJson(jsonString string) string {
 // getDbColumnTypes Returns a list of column types in the DB
 func (me *TableIO[T]) getDbColumnTypes() ([]*sql.ColumnType, error) {
 
-	// Get column types and count from rows
+	// Execute a query that will return no rows
 	sqlCmd := "SELECT * FROM " + me.tableName + " WHERE 1=0"
 	rows, err := me.DB.Query(sqlCmd)
 	if err != nil {
@@ -503,7 +435,7 @@ func (me *TableIO[T]) getDbColumnTypes() ([]*sql.ColumnType, error) {
 	}
 	defer rows.Close()
 
-	// Get column types from rows
+	// Get column types from the result
 	dbColumnTypes, err := rows.ColumnTypes()
 	if err != nil {
 		return nil, err

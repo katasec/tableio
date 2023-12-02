@@ -25,7 +25,7 @@ Note in this example we'll attempt to store a `Person` in the database. The stru
 
 The TableIO constructor `NewTableIO` creates a connection to your database and returns a handle to it. Specify your struct's type as a *type parameter*, for e.g., the below example passes `[Person]` as a type parameter:
 
-### MySQL:
+### MySQL
 
 ```go
 peopleTable, err := NewTableIO[Person]("mysql", "user:password@tcp(127.0.01:3306)/mydb")
@@ -128,24 +128,32 @@ Output:
 Call the `ById()` func to retrieve record with the given Id
 ```go
 
-	result, _ := peopleTable.ById(2)
-	person := result[0]
-	
-	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+result, _ := peopleTable.ById(2)
+person := result[0]
+
+fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
 
 ```
+Output:
 
+```
+ID:2 Name:Ahmed Age:45 City:Cairo 
+```
 ## Query by Name
 
 Call the `ByName()` func to retrieve record with the given Id
 ```go
-	result, _ := peopleTable.ByName("John")
-	person := result[0]
-	
-	fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+result, _ := peopleTable.ByName("John")
+person := result[0]
 
+fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
 ```
 
+Output:
+
+```
+ID:1 Name:John Age:30 City:New York 
+```
 
 ## Delete Table
 The following deletes the table:
