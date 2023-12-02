@@ -64,7 +64,7 @@ peopleTable.CreateTableIfNotExists()
 ## Insert data 
 To insert data, call the insert method passing in your struct
 
-- Single Row Insert
+### Single Row Insert
 
 ```go
 	// Insert data in to table
@@ -78,7 +78,8 @@ To insert data, call the insert method passing in your struct
 	}
 	table.Insert(person)
 ```
-- Multiple Row Insert
+### Multiple Row Insert
+
 ```go
 	people := []Person{
 		{
@@ -104,7 +105,9 @@ To insert data, call the insert method passing in your struct
 You data is now saved in the DB !
 
 
-## Read All data 
+## Query Data
+
+### Read All data 
 
 Call the `All()` func to retrieve all the data:
 
@@ -123,7 +126,7 @@ Output:
 
 ```
 
-## Query by Id
+### Query by Id
 
 Call the `ById()` func to retrieve record with the given Id
 ```go
@@ -139,7 +142,7 @@ Output:
 ```
 ID:2 Name:Ahmed Age:45 City:Cairo 
 ```
-## Query by Name
+### Query by Name
 
 Call the `ByName()` func to retrieve record with the given Id
 ```go
@@ -155,14 +158,16 @@ Output:
 ID:1 Name:John Age:30 City:New York 
 ```
 
-## Delete By Id
+## Delete Data
+
+### Delete By Id
 Call the `DeleteId()` func to delete the record with the given Id
 
 ```go
 peopleTable.DeleteId(1)
 ```
 
-## Delete By Name
+### Delete By Name
 Call the `DeleteByName()` func to delete the record with the given name:
 
 ```go
