@@ -1,6 +1,6 @@
 # Overview 
 
-`tableio` helps with quick proto-typing in persisting structs into a database. Only tested with Mysql and PostgreSQL
+`tableio` is a small and simple library that helps with persisting structs in a database. Great for quick proto-typing. Only tested with Mysql and PostgreSQL
 
 ## Define your structs
 
