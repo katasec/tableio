@@ -77,7 +77,7 @@ person := Person{
 		State: "NY",
 	},
 }
-table.Insert(person)
+peopleTable.Insert(person)
 ```
 ### Multiple Row Insert
 
@@ -100,7 +100,7 @@ people := []Person{
 		},
 	},
 }
-table.InsertMany(people)
+peopleTable.InsertMany(people)
 ```
 
 You data is now saved in the DB !
