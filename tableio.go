@@ -135,39 +135,6 @@ func GenTableName[T any]() string {
 	return tableName
 }
 
-// Insert Inserts a single row into the table
-func (me *TableIO[T]) Insert(data T, verbose ...bool) error {
-	var debug bool
-
-	if len(verbose) > 0 {
-		debug = verbose[0]
-	}
-
-	sqlCmd := "insert into " + me.tableName + "(" + me.insertList + ") values (" + reflectx.GetStructValuesForInsert(data) + ")"
-
-	if debug {
-		fmt.Println(sqlCmd)
-	}
-
-	// Run Insert
-	_, err := me.DB.Exec(sqlCmd)
-	return err
-}
-
-// InsertMany Inserts multiple rows into the table
-func (me *TableIO[T]) InsertMany(data []T) error {
-
-	// Gen Sql Command
-	sqlCmd := ""
-	for _, item := range data {
-		sqlCmd += "insert into " + me.tableName + "(" + me.insertList + ") values (" + reflectx.GetStructValuesForInsert(item) + "); \n"
-	}
-
-	// Run Insert
-	_, err := me.DB.Exec(sqlCmd)
-	return err
-}
-
 // CreateTable Creates a table in the DB for the struct if it does not exist
 func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	var debug bool
@@ -245,9 +212,98 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) error {
 	}
 }
 
+// Insert Inserts a single row into the table
+func (me *TableIO[T]) Insert(data T, verbose ...bool) error {
+	var debug bool
+
+	if len(verbose) > 0 {
+		debug = verbose[0]
+	}
+
+	sqlCmd := "insert into " + me.tableName + "(" + me.insertList + ") values (" + reflectx.GetStructValuesForInsert(data) + ")"
+
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	// Run Insert
+	_, err := me.DB.Exec(sqlCmd)
+	return err
+}
+
+// InsertMany Inserts multiple rows into the table
+func (me *TableIO[T]) InsertMany(data []T) error {
+
+	// Gen Sql Command
+	sqlCmd := ""
+	for _, item := range data {
+		sqlCmd += "insert into " + me.tableName + "(" + me.insertList + ") values (" + reflectx.GetStructValuesForInsert(item) + "); \n"
+	}
+
+	// Run Insert
+	_, err := me.DB.Exec(sqlCmd)
+	return err
+}
+
+// All Returns all rows in the table
+func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := "select " + me.selectList + " from " + me.tableName
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
+// ByName Returns all rows in the table with the given name
+func (me *TableIO[T]) ByName(name string, verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := fmt.Sprintf("select %s from %s where name = '%s'", me.selectList, me.tableName, name)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
+// ById Returns all rows in the table with the given ID
+func (me *TableIO[T]) ById(id int, verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := fmt.Sprintf("select %s from %s where id = '%d'", me.selectList, me.tableName, id)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
 // Close Closes the DB connection
 func (me *TableIO[T]) Close() {
 	me.DB.Close()
+}
+
+// DeleteId Deletes a row with the given ID
+func (me *TableIO[T]) DeleteId(id int) error {
+	sqlCmd := fmt.Sprintf("delete from %s where id = '%d'", me.tableName, id)
+	_, err := me.DB.Exec(sqlCmd)
+	return err
+}
+
+// DeleteByName Deletes a row with the given name
+func (me *TableIO[T]) DeleteByName(name string) error {
+	sqlCmd := fmt.Sprintf("delete from %s where name = '%s'", me.tableName, name)
+	_, err := me.DB.Exec(sqlCmd)
+	return err
 }
 
 // initializeScanDest Creates an array items for each column in a DB row with the appropriate column type.
@@ -367,48 +423,6 @@ func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnTyp
 
 	// Return data
 	return data, nil
-}
-
-// All Returns all rows in the table
-func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
-	// Configure verbose flag
-	debug := len(verbose) > 0 && verbose[0]
-
-	// Construct select statement
-	sqlCmd := "select " + me.selectList + " from " + me.tableName
-	if debug {
-		fmt.Println(sqlCmd)
-	}
-
-	return me.executeQuery(sqlCmd, me.dbColumnTypes)
-}
-
-// ByName Returns all rows in the table with the given name
-func (me *TableIO[T]) ByName(name string, verbose ...bool) ([]T, error) {
-	// Configure verbose flag
-	debug := len(verbose) > 0 && verbose[0]
-
-	// Construct select statement
-	sqlCmd := fmt.Sprintf("select %s from %s where name = '%s'", me.selectList, me.tableName, name)
-	if debug {
-		fmt.Println(sqlCmd)
-	}
-
-	return me.executeQuery(sqlCmd, me.dbColumnTypes)
-}
-
-// ById Returns all rows in the table with the given ID
-func (me *TableIO[T]) ById(id int, verbose ...bool) ([]T, error) {
-	// Configure verbose flag
-	debug := len(verbose) > 0 && verbose[0]
-
-	// Construct select statement
-	sqlCmd := fmt.Sprintf("select %s from %s where id = '%d'", me.selectList, me.tableName, id)
-	if debug {
-		fmt.Println(sqlCmd)
-	}
-
-	return me.executeQuery(sqlCmd, me.dbColumnTypes)
 }
 
 // unescapeJson Unescapes a JSON string

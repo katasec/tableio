@@ -112,10 +112,10 @@ func ExecTableOperations(table *TableIO[Person]) {
 	table.CreateTableIfNotExists()
 
 	// Insert data in to table
-	InsertOne(table)
+	insertOnePerson(table)
 
 	// Insert many
-	InsertMany(table)
+	insertMorePeople(table)
 
 	// Read Data
 	data, _ := table.All()
@@ -130,7 +130,78 @@ func ExecTableOperations(table *TableIO[Person]) {
 	table.Close()
 }
 
-func InsertOne(table *TableIO[Person]) {
+func TestPgSqlDeleteById(t *testing.T) {
+	fmt.Println("Reading PgSql")
+
+	// Get connection string for env
+	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
+
+	// Create peopleTable
+	peopleTable, err := NewTableIO[Person]("postgres", conn)
+	errx.PanicOnError(err)
+	peopleTable.DeleteTableIfExists()
+	peopleTable.CreateTableIfNotExists()
+
+	// Insert Data
+	insertMorePeople(peopleTable)
+
+	// Output Data
+	fmt.Println("Before Delete")
+	outputPeopleTable(peopleTable)
+
+	// Delete Data
+	peopleTable.DeleteId(1)
+
+	// Output Data
+	fmt.Println("After Delete")
+	outputPeopleTable(peopleTable)
+
+}
+
+func TestPgSqlDeleteByName(t *testing.T) {
+
+	// Get connection string for env
+	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
+
+	// Create peopleTable
+	peopleTable, err := NewTableIO[Person]("postgres", conn)
+	peopleTable.DeleteTableIfExists()
+	peopleTable.CreateTableIfNotExists()
+	errx.PanicOnError(err)
+
+	// Insert Data
+	insertOnePerson(peopleTable)
+	insertMorePeople(peopleTable)
+
+	// Output Data
+	fmt.Println("Before Delete")
+	outputPeopleTable(peopleTable)
+
+	// Delete Data
+	peopleTable.DeleteByName("Ahmed")
+
+	// Output Data
+	fmt.Println("After Delete")
+	outputPeopleTable(peopleTable)
+
+}
+
+func outputPeopleTable(table *TableIO[Person]) {
+	// Read Data
+	data, _ := table.All()
+	for i, person := range data {
+		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
+	}
+}
+func insertOnePerson(table *TableIO[Person]) {
 	person := Person{
 		Name: "John",
 		Age:  30,
@@ -142,7 +213,7 @@ func InsertOne(table *TableIO[Person]) {
 	table.Insert(person)
 }
 
-func InsertMany(table *TableIO[Person]) {
+func insertMorePeople(table *TableIO[Person]) {
 	people := []Person{
 		{
 			Name: "Ahmed",
