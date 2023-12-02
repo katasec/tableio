@@ -112,10 +112,10 @@ You data is now saved in the DB !
 Call the `All()` func to retrieve all the data:
 
 ```go
-	data,_ := peopleTable.All()
-	for i, person := range data {
-		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
-	}
+data,_ := peopleTable.All()
+for i, person := range data {
+	fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
+}
 ```
 
 Output:
