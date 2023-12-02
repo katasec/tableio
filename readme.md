@@ -4,7 +4,8 @@
 
 ## Define your structs
 
-Create structs to represent the data you want to persist:
+Create structs to represent the data you want to persist. Here's an example:
+
 
 ```go
 type Address struct {
@@ -19,7 +20,7 @@ type Person struct {
 }
 ```
 
-Note in this example we'll attempt to store a `Person` in the database. The struct you want to persist in the DB must have a `ID` and `Name` field.
+Let's attempt to store the above `Person` struct in the database. The struct you want to persist in the DB must have a `ID` and `Name` field.
 
 ## Connect to your DB
 
