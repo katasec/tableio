@@ -155,6 +155,20 @@ Output:
 ID:1 Name:John Age:30 City:New York 
 ```
 
+## Delete By Id
+Call the `DeleteId()` func to delete the record with the given Id
+
+```go
+peopleTable.DeleteId(1)
+```
+
+## Delete By Name
+Call the `DeleteByName()` func to delete the record with the given name:
+
+```go
+peopleTable.DeleteByName("Ahmed")
+```
+
 ## Delete Table
 The following deletes the table:
 
