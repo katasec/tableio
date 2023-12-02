@@ -35,6 +35,10 @@ type TableIO[T any] struct {
 
 	// dbFields is a list of fields in the struct that have a 'db' tag
 	dbFields []reflectx.FieldInfo
+
+	// dbColumnTypes is a list of SQL column types in the DB. This is used
+	// to cast the values returned from the DB to the appropriate Go field type
+	dbColumnTypes []*sql.ColumnType
 }
 
 // NewTableIO Creates a new TableIO object for a given struct
@@ -68,6 +72,9 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 	// Generate and cache 'select list' and 'insert list' for table
 	tableio.selectList = tableio.genSelectList()
 	tableio.insertList = tableio.genInsertList()
+
+	// If table exists, cache column types
+	tableio.dbColumnTypes, _ = tableio.getDbColumnTypes()
 
 	return tableio, nil
 }
@@ -189,17 +196,24 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 		fmt.Println(sqlCmd)
 	}
 
-	//Execute SQL to create table
+	//Execute SQL to create table, return error if any
 	_, err := me.DB.Exec(sqlCmd)
 	if err != nil {
 		message := fmt.Sprintf("Error creating table %s: %s", tableName, err.Error())
 		return errors.New(message)
-	} else {
-		if debug {
-			fmt.Println("Create table '" + me.tableName + "' successfully")
-		}
-		return nil
 	}
+
+	// If table was created, cache column types
+	me.dbColumnTypes, err = me.getDbColumnTypes()
+	if err != nil {
+		return err
+	}
+
+	if debug {
+		fmt.Println("Create table '" + me.tableName + "' successfully")
+	}
+	return nil
+
 }
 
 // DeleteTableIfExists Deletes a table in the DB for the struct if it exists
@@ -304,50 +318,28 @@ func (me *TableIO[T]) castColumnTypes(dest []any, dbColumnTypes []*sql.ColumnTyp
 	return currentRowData
 }
 
-// All Returns all rows in the table
-func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
-
-	// Configure verbose flag
-	var debug bool
-	if len(verbose) > 0 {
-		debug = verbose[0]
-	}
-
-	// Construct select statement
-	sqlCmd := "select " + me.selectList + " from " + me.tableName
-	if debug {
-		fmt.Println(sqlCmd)
-	}
-
+// Common function to handle query execution and result parsing
+func (me *TableIO[T]) executeQuery(sqlCmd string, dbColumnTypes []*sql.ColumnType) ([]T, error) {
 	// Run Query
 	rows, err := me.DB.Query(sqlCmd)
 	if err != nil {
 		return nil, err
 	}
-
-	// Get column types and count from rows
-	dbColumnTypes, err := rows.ColumnTypes()
-	if err != nil {
-		return nil, err
-	}
+	defer rows.Close()
 
 	// Create array of pointers for each column of appropriate type
 	dest := me.initializeScanDest(dbColumnTypes)
 
 	// Loop through rows
-	allRows := []interface{}{} // This will contain the rows returned from the DB
+	allRows := []interface{}{}
 	for rows.Next() {
-
 		// Scan row into dest
-		err := rows.Scan(dest...)
-		if err != nil {
+		if err := rows.Scan(dest...); err != nil {
 			return nil, err
 		}
 
-		// Dest is a []interface{}. Casr the items in the array to the appropriate type
-		// and store them in the map row
+		// Cast items in the array to the appropriate type and store them in the map row
 		row := me.castColumnTypes(dest, dbColumnTypes)
-
 		// Append current row to final result
 		allRows = append(allRows, row)
 	}
@@ -358,26 +350,137 @@ func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
 		return nil, err
 	}
 
-	// For some reason the jsonBytes needs to be converted to a string and then back to bytes
-	// to cast it to a []T
-
 	// Convert jsonBytes to string
 	jsonString := string(jsonBytes)
 
 	// The resulting JSON string has escaped quotes and curly braces. Unescape them
-	jsonString = UnescapeJson(jsonString)
+	jsonString = unescapeJson(jsonString)
 
 	// Convert jsonString to []T
 	var data []T
-	json.Unmarshal([]byte(jsonString), &data)
+	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
+		return nil, err
+	}
 
 	// Return data
 	return data, nil
-
 }
 
-// UnescapeJson Unescapes a JSON string
-func UnescapeJson(jsonString string) string {
+// All Returns all rows in the table
+// func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
+
+// 	// Configure verbose flag
+// 	var debug bool
+// 	if len(verbose) > 0 {
+// 		debug = verbose[0]
+// 	}
+
+// 	// Construct select statement
+// 	sqlCmd := "select " + me.selectList + " from " + me.tableName
+// 	if debug {
+// 		fmt.Println(sqlCmd)
+// 	}
+
+// 	// Run Query
+// 	rows, err := me.DB.Query(sqlCmd)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Get column types and count from rows
+// 	dbColumnTypes, err := rows.ColumnTypes()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Create array of pointers for each column of appropriate type
+// 	dest := me.initializeScanDest(dbColumnTypes)
+
+// 	// Loop through rows
+// 	allRows := []interface{}{} // This will contain the rows returned from the DB
+// 	for rows.Next() {
+
+// 		// Scan row into dest
+// 		err := rows.Scan(dest...)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+
+// 		// Dest is a []interface{}. Casr the items in the array to the appropriate type
+// 		// and store them in the map row
+// 		row := me.castColumnTypes(dest, dbColumnTypes)
+
+// 		// Append current row to final result
+// 		allRows = append(allRows, row)
+// 	}
+
+// 	// Marshal final result to JSON
+// 	jsonBytes, err := json.MarshalIndent(allRows, "", "  ")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// For some reason the jsonBytes needs to be converted to a string and then back to bytes
+// 	// to cast it to a []T
+
+// 	// Convert jsonBytes to string
+// 	jsonString := string(jsonBytes)
+
+// 	// The resulting JSON string has escaped quotes and curly braces. Unescape them
+// 	jsonString = unescapeJson(jsonString)
+
+// 	// Convert jsonString to []T
+// 	var data []T
+// 	json.Unmarshal([]byte(jsonString), &data)
+
+// 	// Return data
+// 	return data, nil
+// }
+
+// All Returns all rows in the table
+func (me *TableIO[T]) All(verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := "select " + me.selectList + " from " + me.tableName
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
+// ByName Returns all rows in the table with the given name
+func (me *TableIO[T]) ByName(name string, verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := fmt.Sprintf("select %s from %s where name = '%s'", me.selectList, me.tableName, name)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
+// ById Returns all rows in the table with the given ID
+func (me *TableIO[T]) ById(id int, verbose ...bool) ([]T, error) {
+	// Configure verbose flag
+	debug := len(verbose) > 0 && verbose[0]
+
+	// Construct select statement
+	sqlCmd := fmt.Sprintf("select %s from %s where id = '%d'", me.selectList, me.tableName, id)
+	if debug {
+		fmt.Println(sqlCmd)
+	}
+
+	return me.executeQuery(sqlCmd, me.dbColumnTypes)
+}
+
+// unescapeJson Unescapes a JSON string
+func unescapeJson(jsonString string) string {
 
 	// Fix escaped quotes
 	jsonString = strings.Replace(jsonString, `\"`, `"`, -1)
@@ -387,6 +490,27 @@ func UnescapeJson(jsonString string) string {
 	jsonString = strings.Replace(jsonString, `}"`, `}`, -1)
 
 	return jsonString
+}
+
+// getDbColumnTypes Returns a list of column types in the DB
+func (me *TableIO[T]) getDbColumnTypes() ([]*sql.ColumnType, error) {
+
+	// Get column types and count from rows
+	sqlCmd := "SELECT * FROM " + me.tableName + " WHERE 1=0"
+	rows, err := me.DB.Query(sqlCmd)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Get column types from rows
+	dbColumnTypes, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Return column types
+	return dbColumnTypes, nil
 }
 
 // genSelectList returns a comma separated list of fields for the table used for select statements

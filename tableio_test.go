@@ -25,6 +25,71 @@ type Person struct {
 	Address Address
 }
 
+func TestCreateTablePgSql(t *testing.T) {
+
+	fmt.Println("Testing PgSql")
+
+	// Get connection string for env
+	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
+
+	//	Create peopleTable struct from struct definition
+	//	Provide DB connection string and driver name
+	peopleTable, err := NewTableIO[Person]("postgres", conn)
+	errx.PanicOnError(err)
+
+	ExecTableOperations(peopleTable)
+}
+
+func TestPgSqlReadByName(t *testing.T) {
+
+	fmt.Println("Reading PgSql")
+
+	// Get connection string for env
+	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
+
+	// Create peopleTable
+	peopleTable, err := NewTableIO[Person]("postgres", conn)
+	errx.PanicOnError(err)
+
+	result, err := peopleTable.ByName("John")
+	errx.PanicOnError(err)
+
+	for _, person := range result {
+		fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+	}
+}
+
+func TestPgSqlReadById(t *testing.T) {
+
+	fmt.Println("Reading PgSql")
+
+	// Get connection string for env
+	conn := os.Getenv("PGSQL_CONNECTION_STRING")
+	if conn == "" {
+		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
+		os.Exit(1)
+	}
+
+	// Create peopleTable
+	peopleTable, err := NewTableIO[Person]("postgres", conn)
+	errx.PanicOnError(err)
+
+	result, err := peopleTable.ById(2)
+	errx.PanicOnError(err)
+
+	for _, person := range result {
+		fmt.Printf("ID:%d Name:%s Age:%d City:%s \n", person.ID, person.Name, person.Age, person.Address.City)
+	}
+}
+
 func TestCreateTableMySql(t *testing.T) {
 	fmt.Println("Testing MySql")
 	// Get connection string for env
@@ -42,40 +107,6 @@ func TestCreateTableMySql(t *testing.T) {
 	ExecTableOperations(peopleTable)
 }
 
-func TestCreateTablePgSql(t *testing.T) {
-	// Get connection string for env
-	conn := os.Getenv("PGSQL_CONNECTION_STRING")
-	if conn == "" {
-		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
-		os.Exit(1)
-	}
-
-	//	Create peopleTable struct from struct definition
-	//	Provide DB connection string and driver name
-	peopleTable, err := NewTableIO[Person]("postgres", conn)
-
-	//CreateTable[Person]("postgres", conn)
-	errx.PanicOnError(err)
-
-	ExecTableOperations(peopleTable)
-}
-
-// func CreateTable[T any](driverName string, datsourceName string) *TableIO[T] {
-// 	// Get connection string for env
-// 	conn := os.Getenv("PGSQL_CONNECTION_STRING")
-// 	if conn == "" {
-// 		fmt.Println("Error, could not get connectin string from env var PGSQL_CONNECTION_STRING")
-// 		os.Exit(1)
-// 	}
-
-// 	//	Create peopleTable struct from struct definition
-// 	//	Provide DB connection string and driver name
-// 	table, err := NewTableIO[T]("postgres", conn)
-// 	errx.PanicOnError(err)
-
-//		return table
-//	}
-
 func ExecTableOperations(table *TableIO[Person]) {
 
 	// Delete and Recreate Table
@@ -89,7 +120,7 @@ func ExecTableOperations(table *TableIO[Person]) {
 	InsertMany(table)
 
 	// Read Data
-	data, _ := table.All(true)
+	data, _ := table.All()
 	for i, person := range data {
 		fmt.Printf("%d. ID:%d Name:%s Age:%d City:%s \n", i+1, person.ID, person.Name, person.Age, person.Address.City)
 	}
