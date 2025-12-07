@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	// DB Drivers
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -41,11 +42,6 @@ type TableIO[T any] struct {
 // NewTableIO Creates a new TableIO object for a given struct
 func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], error) {
 
-	// Validate Struct first. A struct must have an 'ID' and 'Name' field
-	if !Validate[T]() {
-		return nil, fmt.Errorf("error: TableIO structs must have an 'ID' and 'Name' field")
-	}
-
 	// Create a DB connection
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -65,39 +61,6 @@ func NewTableIO[T any](driverName string, dataSourceName string) (*TableIO[T], e
 	tableio.insertList = tableio.genInsertList()
 
 	return tableio, nil
-}
-
-// Validate Checks if a struct has an 'ID' and 'Name' field
-func Validate[T any]() bool {
-
-	var x T
-	typeName := reflect.TypeOf(x).String()
-
-	// Get fields in struct
-	fields := reflectx.GetStructFields[T]()
-
-	// Check if struct has an 'ID' and 'Name' field
-	idField := false
-	nameField := false
-	for _, field := range fields {
-		if field.FieldName == "ID" && field.FieldType == "int64" {
-			idField = true
-		}
-		if field.FieldName == "Name" && field.FieldType == "string" {
-			nameField = true
-		}
-	}
-
-	// Output error if struct does not have an 'ID' and 'Name' field
-	if !idField {
-		fmt.Printf("struct '%s' does not have an 'ID' field of type int64\n", typeName)
-	}
-	if !nameField {
-		fmt.Printf("struct '%s' does not have a 'Name' field of type string\n", typeName)
-	}
-
-	// Return true if struct has both ID and Name fields
-	return idField && nameField
 }
 
 // GenTableName Generates the DB table name from the type of the struct.
@@ -162,6 +125,24 @@ func (me *TableIO[T]) InsertMany(data []T) error {
 	return nil
 }
 
+// getCreateTableHeader returns the SQL header for CREATE TABLE statement based on driver
+func (me *TableIO[T]) getCreateTableHeader(tableName string) string {
+	if me.driverName == "sqlserver" || me.driverName == "mssql" {
+		return "IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[" + tableName + "]') AND type in (N'U'))\n" +
+			"BEGIN\n" +
+			"CREATE TABLE [dbo].[" + tableName + "] (\n"
+	}
+	return "CREATE TABLE IF NOT EXISTS " + tableName + " (\n"
+}
+
+// getCreateTableFooter returns the SQL footer for CREATE TABLE statement based on driver
+func (me *TableIO[T]) getCreateTableFooter() string {
+	if me.driverName == "sqlserver" || me.driverName == "mssql" {
+		return ")\nEND;"
+	}
+	return ");"
+}
+
 // CreateTable Creates a table in the DB for the struct if it does not exist
 func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	var debug bool
@@ -176,13 +157,13 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	tableName := GenTableName[T]()
 
 	// Start Create Table Command
-	sb.WriteString("CREATE TABLE IF NOT EXISTS " + tableName + " (\n")
+	sb.WriteString(me.getCreateTableHeader(tableName))
 
 	// Add fields
 	sb.WriteString(reflectx.GenSqlForFields(me.dbFields, me.driverName))
 
 	// End Command
-	sb.WriteString(");")
+	sb.WriteString(me.getCreateTableFooter())
 
 	// Generate string
 	sqlCmd := sb.String()
@@ -201,6 +182,14 @@ func (me *TableIO[T]) CreateTableIfNotExists(verbose ...bool) error {
 	return nil
 }
 
+// getDropTableSQL returns the SQL for DROP TABLE statement based on driver
+func (me *TableIO[T]) getDropTableSQL(tableName string) string {
+	if me.driverName == "sqlserver" || me.driverName == "mssql" {
+		return "IF OBJECT_ID(N'[dbo].[" + tableName + "]', N'U') IS NOT NULL DROP TABLE [dbo].[" + tableName + "];"
+	}
+	return "DROP TABLE IF EXISTS " + tableName + ";"
+}
+
 // DeleteTableIfExists Deletes a table in the DB for the struct if it exists
 func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 
@@ -212,8 +201,8 @@ func (me *TableIO[T]) DeleteTableIfExists(verbose ...bool) {
 
 	tableName := GenTableName[T]()
 
-	// Start Create Table Commands
-	sqlCmd := "DROP TABLE IF EXISTS " + tableName + ";"
+	// Get DROP TABLE SQL
+	sqlCmd := me.getDropTableSQL(tableName)
 
 	// Execute SQL to create table
 	_, err := me.DB.Exec(sqlCmd)
@@ -347,23 +336,17 @@ func (me *TableIO[T]) genSelectList() string {
 	return list
 }
 
-// genSelectList returns a comma separated list of fields for the table used for insert statements
-// this excludes the ID field
+// genInsertList returns a comma separated list of fields for the table used for insert statements
+// this excludes auto-increment fields
 func (me *TableIO[T]) genInsertList() string {
-	list := ""
+	var fields []string
 
-	for i, j := range me.dbFields {
-
-		// Add field name to list
-		if j.FieldName != "ID" {
-			list += j.FieldName
-
-			// Add comma if not last field
-			if i < len(me.dbFields)-1 {
-				list += ","
-			}
+	for _, field := range me.dbFields {
+		// Skip auto-increment fields (database generates these)
+		if !field.AutoIncrement {
+			fields = append(fields, field.FieldName)
 		}
-
 	}
-	return list
+
+	return strings.Join(fields, ",")
 }
