@@ -8,10 +8,39 @@ import (
 	"strings"
 )
 
+// parseTableIOTag parses the tableio struct tag and returns a map of attributes
+// Supports: pk, auto, unique, required
+func parseTableIOTag(tag string) map[string]bool {
+	attrs := make(map[string]bool)
+	if tag == "" {
+		return attrs
+	}
+
+	parts := strings.Split(tag, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		switch part {
+		case "pk", "primarykey":
+			attrs["pk"] = true
+		case "auto", "autoincrement":
+			attrs["auto"] = true
+		case "unique":
+			attrs["unique"] = true
+		case "required", "notnull":
+			attrs["required"] = true
+		}
+	}
+	return attrs
+}
+
 type FieldInfo struct {
-	FieldName string
-	FieldType string
-	DbTag     string
+	FieldName     string
+	FieldType     string
+	DbTag         string
+	PrimaryKey    bool
+	AutoIncrement bool
+	Unique        bool
+	Required      bool
 }
 
 // GetDbStructFields Returns list of fields in a struct of type "T" that have
@@ -74,33 +103,34 @@ func GetStructValues[T any](data T) string {
 	return result
 }
 
-// GetStructValues Gets struct values of the fields in a struct
+// GetStructValuesForInsert Gets struct values of the fields in a struct
 // used for the 'VALUES' clause in an SQL INSERT statement
+// Skips auto-increment fields
 func GetStructValuesForInsert[T any](data T) string {
 
-	var sb strings.Builder
+	var values []string
 
 	// Use reflection to inspect struct values
 	dataValue := reflect.ValueOf(data)
-	dataTypes := reflect.TypeOf(data)
+
+	// Get field info to check for auto-increment
+	fieldInfos := GetStructFields[T]()
 
 	// Iterate thru fields in struct
 	numFields := dataValue.NumField()
 	for i := 0; i < numFields; i++ {
-		// Skip ID field for inserts
-		if dataTypes.Field(i).Name == "ID" {
+		// Skip auto-increment fields (database generates these)
+		if fieldInfos[i].AutoIncrement {
 			continue
 		}
 		// Get current field value
 		myValue := getValueFromStruct(dataValue.Field(i))
 
-		// Comma separated
-		sb.WriteString("'" + myValue + "',")
+		// Add to values list
+		values = append(values, "'"+myValue+"'")
 	}
 
-	result := TrimSuffix(sb.String(), ",")
-
-	return result
+	return strings.Join(values, ",")
 }
 
 // getValueFromStruct Gets the value of the passed in field in a struct.
@@ -134,42 +164,62 @@ GenSqlForFields Given a list of fields, generate SQL for the fields section in a
 */
 func GenSqlForFields(fields []FieldInfo, driverName string) string {
 	var sb strings.Builder
-	var sql string
 
 	// Loop through fields to generate SQL
 	for i, field := range fields {
 
-		// Generate SQL for current field
-		if (field.FieldName) == "ID" {
-			// Generate SQL for field based on field name for ID field
-			// Note ID fields definition varies by database
+		// Build column definition based on field attributes
+		var colDef strings.Builder
+		colDef.WriteString("\t" + field.FieldName + " ")
+
+		// Determine column type
+		if field.PrimaryKey && field.AutoIncrement {
+			// Auto-increment primary key - database-specific syntax
 			switch driverName {
 			case "sqlite3":
-				sql = "\tID INTEGER PRIMARY KEY AUTOINCREMENT"
+				colDef.WriteString("INTEGER PRIMARY KEY AUTOINCREMENT")
 			case "mysql":
-				sql = "\tID INT PRIMARY KEY AUTO_INCREMENT"
+				colDef.WriteString("INT PRIMARY KEY AUTO_INCREMENT")
 			case "postgres":
-				sql = "\tID SERIAL PRIMARY KEY"
+				colDef.WriteString("SERIAL PRIMARY KEY")
+			case "mssql", "sqlserver":
+				colDef.WriteString("INT PRIMARY KEY IDENTITY(1,1)")
 			}
-			sb.WriteString(sql)
-		} else if (field.FieldName) == "Name" {
-			// Generate SQL for field based on field name for Name field
-			sql = "\tName VARCHAR(255) NOT NULL UNIQUE"
-			sb.WriteString(sql)
 		} else {
-			// Generate SQL for field based on field type
+			// Regular field - determine type
 			switch field.FieldType {
 			case "string":
-				sql = fmt.Sprintf("\t%s VARCHAR(255) NULL", field.FieldName)
-				sb.WriteString(sql)
+				colDef.WriteString("VARCHAR(255)")
 			case "int32", "int64", "int":
-				sql = fmt.Sprintf("\t%s INTEGER NULL", field.FieldName)
-				sb.WriteString(sql)
+				colDef.WriteString("INTEGER")
 			default:
-				sql = fmt.Sprintf("\t%s TEXT NULL", field.FieldName)
-				sb.WriteString(sql)
+				// Nested structs and other types - use driver-specific column type
+				switch driverName {
+				case "sqlite3":
+					colDef.WriteString("TEXT")
+				case "mssql", "sqlserver":
+					colDef.WriteString("NVARCHAR(MAX)")
+				default:
+					colDef.WriteString("JSON")
+				}
+			}
+
+			// Add constraints
+			if field.PrimaryKey {
+				colDef.WriteString(" PRIMARY KEY")
+			}
+			if field.Required {
+				colDef.WriteString(" NOT NULL")
+			}
+			if field.Unique {
+				colDef.WriteString(" UNIQUE")
+			}
+			if !field.Required && !field.PrimaryKey {
+				colDef.WriteString(" NULL")
 			}
 		}
+
+		sb.WriteString(colDef.String())
 
 		// Add comma if not last field
 		if i < len(fields)-1 {
@@ -183,8 +233,7 @@ func GenSqlForFields(fields []FieldInfo, driverName string) string {
 	return sb.String()
 }
 
-// GetDbStructFields Returns list of fields in a struct of type "T" that have
-// a "db" tag
+// GetStructFields Returns list of fields in a struct of type "T" with parsed tableio tags
 func GetStructFields[T any]() []FieldInfo {
 	var fieldInfo []FieldInfo
 
@@ -198,10 +247,18 @@ func GetStructFields[T any]() []FieldInfo {
 		// Get current field from struct
 		f := myType.Field(i)
 
+		// Parse tableio tag
+		tableioTag := f.Tag.Get("tableio")
+		attrs := parseTableIOTag(tableioTag)
+
 		// Add field name and type to list of fields
 		fieldInfo = append(fieldInfo, FieldInfo{
-			FieldName: f.Name,
-			FieldType: f.Type.Name(),
+			FieldName:     f.Name,
+			FieldType:     f.Type.Name(),
+			PrimaryKey:    attrs["pk"],
+			AutoIncrement: attrs["auto"],
+			Unique:        attrs["unique"],
+			Required:      attrs["required"],
 		})
 
 	}
