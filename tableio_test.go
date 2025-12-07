@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	// DB Drivers
+	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -20,8 +21,8 @@ type Address struct {
 	State string
 }
 type Person struct {
-	ID      int64  `json:"id"`
-	Name    string `json:"name"`
+	ID      int64  `json:"id" tableio:"pk,auto"`
+	Name    string `json:"name" tableio:"unique,required"`
 	Age     int    `json:"age"`
 	Address Address
 }
@@ -125,6 +126,20 @@ func TestCreateTablePgSql(t *testing.T) {
 // 	fmt.Println(GenTableName[AzureCloudspace]())
 // }
 
+func TestCreateTableMsSql(t *testing.T) {
+	// Hardcoded connection string for local MSSQL
+	conn := "sqlserver://sa:Passw0rd123@localhost:1433?database=master"
+
+	/*
+		Create peopleTable struct from struct definition
+		Provide DB connection string and driver name
+	*/
+	peopleTable, err := NewTableIO[Person]("sqlserver", conn)
+	errx.PanicOnError(err)
+
+	ExecTableOperations(peopleTable)
+}
+
 func TestValidateStruct(t *testing.T) {
 	type TestStruct1 struct {
 		Age int
@@ -136,8 +151,8 @@ func TestValidateStruct(t *testing.T) {
 	}
 
 	type TestStruct2 struct {
-		ID   int64
-		Name string
+		ID   int64  `tableio:"pk,auto"`
+		Name string `tableio:"unique,required"`
 		Age  int
 	}
 
